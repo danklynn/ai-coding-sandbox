@@ -8,7 +8,7 @@ class Game {
         window.addEventListener('resize', () => this.resizeCanvas());
         
         this.camera = { x: 0, y: 0 };
-        this.levelWidth = 2000;
+        this.levelWidth = 2200;
         
         this.keys = {};
         this.gameState = 'playing';
@@ -32,6 +32,14 @@ class Game {
         this.backgroundLoaded = false;
         this.backgroundImage.onload = () => {
             this.backgroundLoaded = true;
+        };
+        
+        // Load baby elephant cage image
+        this.babyElephantImage = new Image();
+        this.babyElephantImage.src = 'images/baby_elephant.png';
+        this.babyElephantLoaded = false;
+        this.babyElephantImage.onload = () => {
+            this.babyElephantLoaded = true;
         };
         
         this.init();
@@ -78,13 +86,14 @@ class Game {
             {x: 1400, y: 300, width: 80, height: 15, type: 'moving', moveRange: 100, moveSpeed: 1},
             {x: 1550, y: 250, width: 80, height: 15, type: 'moving', moveRange: 80, moveSpeed: -1.5},
             
-            // Boss area
-            {x: 1700, y: 450, width: 300, height: 50, type: 'boss_platform'},
+            // Boss area - extended for baby elephant cage
+            {x: 1700, y: 450, width: 400, height: 50, type: 'boss_platform'},
             
             // Small platforms in boss area
             {x: 1750, y: 350, width: 60, height: 15, type: 'rock'},
             {x: 1850, y: 320, width: 60, height: 15, type: 'rock'},
-            {x: 1950, y: 350, width: 60, height: 15, type: 'rock'}
+            {x: 1950, y: 350, width: 60, height: 15, type: 'rock'},
+            {x: 2050, y: 380, width: 80, height: 20, type: 'rock'}
         ];
         
         // Add fruits
@@ -99,7 +108,7 @@ class Game {
         ];
         
         // Create boss
-        this.boss = new Boss(1850, 400);
+        this.boss = new Boss(1800, 350);
     }
     
     addFruits() {
@@ -335,6 +344,11 @@ class Game {
         // Draw enemies
         this.enemies.forEach(enemy => enemy.draw(this.ctx));
         
+        // Draw baby elephant cage behind boss
+        if (this.boss && this.babyElephantLoaded) {
+            this.drawBabyElephantCage();
+        }
+        
         // Draw boss
         if (this.boss && !this.boss.defeated) {
             this.boss.draw(this.ctx);
@@ -441,6 +455,27 @@ class Game {
         this.ctx.fillText('The animals need your help! 🦏', this.canvas.width / 2, this.canvas.height / 2);
         this.ctx.fillText(`Final Score: ${this.score}`, this.canvas.width / 2, this.canvas.height / 2 + 40);
         this.ctx.fillText('Press F5 to try again', this.canvas.width / 2, this.canvas.height / 2 + 80);
+    }
+    
+    drawBabyElephantCage() {
+        if (!this.boss) return;
+        
+        // Position the cage at a fixed location based on boss's original position
+        // This keeps the cage stationary even when the boss charges around
+        const cageX = this.boss.originalX + this.boss.width + 30;
+        const cageY = this.boss.y + 20; // Use current Y position for platform alignment
+        
+        // Make the image large enough to be clearly visible
+        const cageWidth = 120;
+        const cageHeight = 120;
+        
+        this.ctx.drawImage(
+            this.babyElephantImage,
+            cageX,
+            cageY,
+            cageWidth,
+            cageHeight
+        );
     }
     
     gameLoop() {
