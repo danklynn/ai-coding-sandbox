@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safari Rescue - Level 1: Savanna Sunset</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to bottom, #ff7f50, #ff6347, #ffa500);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #gameCanvas {
+            border: 2px solid #8B4513;
+            background: linear-gradient(to bottom, #87CEEB 0%, #FFE4B5 60%, #F4A460 100%);
+            max-width: 100%;
+            max-height: 100%;
+        }
+        
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            font-size: 18px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        #health {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .heart {
+            color: #ff0000;
+            font-size: 24px;
+        }
+        
+        #score {
+            font-weight: bold;
+        }
+        
+        #fruitCounter {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            text-align: center;
+            font-size: 14px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+        }
+        
+        #levelTitle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 36px;
+            font-weight: bold;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.8);
+            animation: fadeInOut 3s ease-in-out forwards;
+            pointer-events: none;
+            z-index: 20;
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="1200" height="600"></canvas>
+        
+        <div id="hud">
+            <div id="health">
+                <span class="heart">♥</span>
+                <span class="heart">♥</span>
+                <span class="heart">♥</span>
+            </div>
+            <div id="score">Score: 0</div>
+            <div id="fruitCounter">
+                <span>🍌 0/30</span>
+            </div>
+        </div>
+        
+        <div id="levelTitle">Savanna Sunset</div>
+        
+        <div id="controls">
+            Use A/D or Arrow Keys to move • W or Spacebar to jump • Jump on enemies to defeat them
+        </div>
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html>
