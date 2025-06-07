@@ -565,6 +565,12 @@ class Player {
         
         // World boundaries
         if (this.x < 0) this.x = 0;
+        
+        // Get level width from game instance
+        const game = window.game;
+        if (game && this.x + this.width > game.levelWidth) {
+            this.x = game.levelWidth - this.width;
+        }
         if (this.y > 700) {
             // Fell off the world - this causes death
             this.die();
