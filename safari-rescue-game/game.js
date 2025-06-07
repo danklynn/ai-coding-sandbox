@@ -16,6 +16,7 @@ class Game {
         this.score = 0;
         this.fruitsCollected = 0;
         this.totalFruits = 30;
+        this.lives = 3;
         
         this.platforms = [];
         this.enemies = [];
@@ -25,8 +26,20 @@ class Game {
         this.player = new Player(100, 400);
         this.boss = null;
         
+        // Load background image
+        this.backgroundImage = new Image();
+        this.backgroundImage.src = 'images/savannah_background.png';
+        this.backgroundLoaded = false;
+        this.backgroundImage.onload = () => {
+            this.backgroundLoaded = true;
+        };
+        
         this.init();
         this.setupLevel();
+        
+        // Make game instance globally accessible for player death handling
+        window.game = this;
+        
         this.gameLoop();
     }
     
@@ -164,23 +177,38 @@ class Game {
             return true;
         });
         
-        // Player vs enemies
+        // Player vs enemies (more forgiving collision for stomping)
         this.enemies.forEach((enemy, index) => {
             if (this.isColliding(this.player, enemy) && !enemy.defeated) {
-                if (this.player.velocityY > 0 && this.player.y < enemy.y - 10) {
-                    // Player jumping on enemy
+                // More generous stomp detection - check if player is falling and above enemy's center
+                const playerCenterY = this.player.y + this.player.height;
+                const enemyCenterY = enemy.y + (enemy.height * 0.3); // Top 30% of enemy
+                
+                if (this.player.velocityY > 0 && playerCenterY < enemyCenterY) {
+                    // Player jumping on enemy - successful stomp
                     this.defeatEnemy(enemy, index);
                     this.player.velocityY = -8; // Bounce
                 } else if (!this.player.invulnerable) {
-                    // Player takes damage
-                    this.player.takeDamage();
+                    // Player takes damage - but only if not in stomp position
+                    const horizontalOverlap = Math.min(this.player.x + this.player.width, enemy.x + enemy.width) - 
+                                            Math.max(this.player.x, enemy.x);
+                    const verticalOverlap = Math.min(this.player.y + this.player.height, enemy.y + enemy.height) - 
+                                          Math.max(this.player.y, enemy.y);
+                    
+                    // Only damage if significant overlap (not just touching edges)
+                    if (horizontalOverlap > 10 && verticalOverlap > 10) {
+                        this.player.takeDamage();
+                    }
                 }
             }
         });
         
-        // Player vs boss
+        // Player vs boss (more forgiving collision)
         if (this.boss && !this.boss.defeated && this.isColliding(this.player, this.boss)) {
-            if (this.player.velocityY > 0 && this.player.y < this.boss.y - 10) {
+            const playerCenterY = this.player.y + this.player.height;
+            const bossCenterY = this.boss.y + (this.boss.height * 0.3); // Top 30% of boss
+            
+            if (this.player.velocityY > 0 && playerCenterY < bossCenterY) {
                 this.boss.takeDamage();
                 this.player.velocityY = -8;
                 this.score += 300;
@@ -188,7 +216,15 @@ class Game {
                     this.defeatBoss();
                 }
             } else if (!this.player.invulnerable) {
-                this.player.takeDamage();
+                // Only damage if significant overlap
+                const horizontalOverlap = Math.min(this.player.x + this.player.width, this.boss.x + this.boss.width) - 
+                                        Math.max(this.player.x, this.boss.x);
+                const verticalOverlap = Math.min(this.player.y + this.player.height, this.boss.y + this.boss.height) - 
+                                      Math.max(this.player.y, this.boss.y);
+                
+                if (horizontalOverlap > 15 && verticalOverlap > 15) {
+                    this.player.takeDamage();
+                }
             }
         }
     }
@@ -238,6 +274,20 @@ class Game {
         // Victory sequence handled by drawVictoryScreen
     }
     
+    playerDied() {
+        this.lives--;
+        
+        if (this.lives <= 0) {
+            // Game over
+            this.gameState = 'game_over';
+        } else {
+            // Respawn player
+            this.player.respawn();
+        }
+        
+        this.updateUI();
+    }
+    
     updateCamera() {
         // Follow player with some offset
         const targetX = this.player.x - this.canvas.width / 3;
@@ -247,6 +297,7 @@ class Game {
     updateUI() {
         document.getElementById('score').textContent = `Score: ${this.score}`;
         document.getElementById('fruitCounter').innerHTML = `🍌 ${this.fruitsCollected}/${this.totalFruits}`;
+        document.getElementById('livesCounter').textContent = `Lives: ${this.lives}`;
         
         const hearts = document.querySelectorAll('.heart');
         hearts.forEach((heart, index) => {
@@ -290,45 +341,44 @@ class Game {
         // Draw UI elements that don't move with camera
         if (this.gameState === 'victory') {
             this.drawVictoryScreen();
+        } else if (this.gameState === 'game_over') {
+            this.drawGameOverScreen();
         }
     }
     
     drawBackground() {
-        // Sky gradient (already in CSS)
-        // Draw distant mountains
-        this.ctx.fillStyle = '#8B4513';
-        this.ctx.beginPath();
-        for (let i = 0; i < 5; i++) {
-            const x = i * 300 - this.camera.x * 0.1;
-            this.ctx.moveTo(x, this.canvas.height);
-            this.ctx.lineTo(x + 100, this.canvas.height - 150);
-            this.ctx.lineTo(x + 200, this.canvas.height - 120);
-            this.ctx.lineTo(x + 300, this.canvas.height);
-        }
-        this.ctx.fill();
-        
-        // Draw acacia trees
-        this.drawAcaciaTrees();
-    }
-    
-    drawAcaciaTrees() {
-        this.ctx.fillStyle = '#8B4513';
-        const treePositions = [200, 600, 1000, 1400, 1800];
-        
-        treePositions.forEach(treeX => {
-            const x = treeX - this.camera.x * 0.3;
-            if (x > -100 && x < this.canvas.width + 100) {
-                // Tree trunk
-                this.ctx.fillRect(x + 15, this.canvas.height - 200, 20, 100);
-                
-                // Tree canopy
-                this.ctx.fillStyle = '#228B22';
-                this.ctx.beginPath();
-                this.ctx.arc(x + 25, this.canvas.height - 180, 40, 0, Math.PI * 2);
-                this.ctx.fill();
-                this.ctx.fillStyle = '#8B4513';
+        if (this.backgroundLoaded) {
+            // Calculate how many times to repeat the background image to cover the level width
+            const imageWidth = this.backgroundImage.width;
+            const imageHeight = this.backgroundImage.height;
+            
+            // Scale the image to fit the canvas height while maintaining aspect ratio
+            const scale = this.canvas.height / imageHeight;
+            const scaledWidth = imageWidth * scale;
+            
+            // Draw multiple copies of the background to create seamless scrolling
+            const startX = Math.floor(this.camera.x / scaledWidth) * scaledWidth - this.camera.x;
+            const numImages = Math.ceil(this.canvas.width / scaledWidth) + 2;
+            
+            for (let i = 0; i < numImages; i++) {
+                const x = startX + (i * scaledWidth);
+                this.ctx.drawImage(
+                    this.backgroundImage,
+                    x,
+                    0,
+                    scaledWidth,
+                    this.canvas.height
+                );
             }
-        });
+        } else {
+            // Fallback gradient background while image loads
+            const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(0.6, '#FFE4B5');
+            gradient.addColorStop(1, '#F4A460');
+            this.ctx.fillStyle = gradient;
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        }
     }
     
     drawPlatform(platform) {
@@ -366,6 +416,22 @@ class Game {
         this.ctx.fillText(`Final Score: ${this.score}`, this.canvas.width / 2, this.canvas.height / 2 + 40);
     }
     
+    drawGameOverScreen() {
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        this.ctx.fillStyle = '#FF0000';
+        this.ctx.font = '48px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2 - 50);
+        
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.font = '24px Arial';
+        this.ctx.fillText('The animals need your help! 🦏', this.canvas.width / 2, this.canvas.height / 2);
+        this.ctx.fillText(`Final Score: ${this.score}`, this.canvas.width / 2, this.canvas.height / 2 + 40);
+        this.ctx.fillText('Press F5 to try again', this.canvas.width / 2, this.canvas.height / 2 + 80);
+    }
+    
     gameLoop() {
         this.update();
         this.render();
@@ -377,8 +443,8 @@ class Player {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.width = 32;
-        this.height = 32;
+        this.width = 64;
+        this.height = 64;
         this.velocityX = 0;
         this.velocityY = 0;
         this.onGround = false;
@@ -425,16 +491,19 @@ class Player {
         this.x += this.velocityX;
         this.y += this.velocityY;
         
-        // Platform collision
+        // Platform collision (Mario-style one-way platforms)
         this.onGround = false;
         platforms.forEach(platform => {
+            // Check horizontal overlap
             if (this.x < platform.x + platform.width &&
-                this.x + this.width > platform.x &&
-                this.y < platform.y + platform.height &&
-                this.y + this.height > platform.y) {
+                this.x + this.width > platform.x) {
                 
-                if (this.velocityY > 0 && this.y < platform.y) {
-                    // Landing on top
+                // Only check for landing on top if falling down
+                if (this.velocityY > 0 && 
+                    this.y + this.height - this.velocityY <= platform.y && 
+                    this.y + this.height >= platform.y &&
+                    this.y + this.height <= platform.y + 10) { // Small tolerance for landing
+                    // Landing on top from above
                     this.y = platform.y - this.height;
                     this.velocityY = 0;
                     this.onGround = true;
@@ -445,11 +514,8 @@ class Player {
         // World boundaries
         if (this.x < 0) this.x = 0;
         if (this.y > 700) {
-            // Fell off the world
-            this.takeDamage();
-            this.x = 100;
-            this.y = 400;
-            this.velocityY = 0;
+            // Fell off the world - this causes death
+            this.die();
         }
         
         // Update invulnerability
@@ -469,10 +535,26 @@ class Player {
         this.invulnerabilityTimer = 120; // 2 seconds at 60fps
         
         if (this.health <= 0) {
-            // Game over
-            alert('Game Over! The animals need your help!');
-            location.reload();
+            // Health depleted - player dies
+            this.die();
         }
+    }
+    
+    die() {
+        // Player dies - lose a life and respawn
+        const game = window.game; // Access the game instance
+        game.playerDied();
+    }
+    
+    respawn() {
+        // Reset player state for respawn
+        this.x = 100;
+        this.y = 400;
+        this.velocityX = 0;
+        this.velocityY = 0;
+        this.health = 3;
+        this.invulnerable = true;
+        this.invulnerabilityTimer = 180; // 3 seconds of invulnerability after respawn
     }
     
     draw(ctx) {
@@ -481,24 +563,97 @@ class Player {
             ctx.globalAlpha = 0.5;
         }
         
-        // Draw player as safari character
-        ctx.fillStyle = '#DEB887'; // Khaki color
-        ctx.fillRect(this.x, this.y, this.width, this.height);
+        this.drawRealisticSprite(ctx);
         
-        // Hat
-        ctx.fillStyle = '#8B4513';
-        ctx.fillRect(this.x + 5, this.y - 5, this.width - 10, 8);
+        ctx.globalAlpha = 1;
+    }
+    
+    drawRealisticSprite(ctx) {
+        const x = this.x;
+        const y = this.y;
         
-        // Face
+        // Head (flesh tone)
         ctx.fillStyle = '#FFDBAC';
-        ctx.fillRect(this.x + 8, this.y + 5, this.width - 16, 15);
+        ctx.fillRect(x + 20, y + 4, 24, 20);
+        
+        // Safari hat
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(x + 16, y, 32, 8);
+        ctx.fillRect(x + 12, y + 2, 40, 4);
+        
+        // Hat band
+        ctx.fillStyle = '#654321';
+        ctx.fillRect(x + 16, y + 4, 32, 2);
         
         // Eyes
         ctx.fillStyle = '#000';
-        ctx.fillRect(this.x + 12, this.y + 8, 2, 2);
-        ctx.fillRect(this.x + 18, this.y + 8, 2, 2);
+        ctx.fillRect(x + 24, y + 10, 2, 2);
+        ctx.fillRect(x + 38, y + 10, 2, 2);
         
-        ctx.globalAlpha = 1;
+        // Nose
+        ctx.fillStyle = '#F4A460';
+        ctx.fillRect(x + 30, y + 14, 4, 2);
+        
+        // Beard/mustache
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(x + 26, y + 18, 12, 4);
+        
+        // Neck
+        ctx.fillStyle = '#FFDBAC';
+        ctx.fillRect(x + 26, y + 24, 12, 6);
+        
+        // Safari vest (khaki)
+        ctx.fillStyle = '#C8B99C';
+        ctx.fillRect(x + 16, y + 30, 32, 24);
+        
+        // Vest pockets
+        ctx.fillStyle = '#B8A982';
+        ctx.fillRect(x + 20, y + 34, 8, 6);
+        ctx.fillRect(x + 36, y + 34, 8, 6);
+        
+        // Arms
+        ctx.fillStyle = '#FFDBAC';
+        ctx.fillRect(x + 8, y + 32, 8, 16);  // Left arm
+        ctx.fillRect(x + 48, y + 32, 8, 16); // Right arm
+        
+        // Arm sleeves
+        ctx.fillStyle = '#C8B99C';
+        ctx.fillRect(x + 10, y + 32, 4, 12);
+        ctx.fillRect(x + 50, y + 32, 4, 12);
+        
+        // Hands
+        ctx.fillStyle = '#FFDBAC';
+        ctx.fillRect(x + 8, y + 48, 8, 6);
+        ctx.fillRect(x + 48, y + 48, 8, 6);
+        
+        // Belt
+        ctx.fillStyle = '#654321';
+        ctx.fillRect(x + 16, y + 54, 32, 4);
+        
+        // Belt buckle
+        ctx.fillStyle = '#FFD700';
+        ctx.fillRect(x + 30, y + 54, 4, 4);
+        
+        // Legs (khaki pants)
+        ctx.fillStyle = '#C8B99C';
+        ctx.fillRect(x + 20, y + 58, 10, 6);  // Left leg
+        ctx.fillRect(x + 34, y + 58, 10, 6);  // Right leg
+        
+        // Boots
+        ctx.fillStyle = '#654321';
+        ctx.fillRect(x + 18, y + 58, 14, 6);   // Left boot
+        ctx.fillRect(x + 32, y + 58, 14, 6);   // Right boot
+        
+        // Binoculars around neck
+        ctx.fillStyle = '#333333';
+        ctx.fillRect(x + 24, y + 26, 4, 4);
+        ctx.fillRect(x + 36, y + 26, 4, 4);
+        ctx.strokeStyle = '#654321';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x + 26, y + 24);
+        ctx.lineTo(x + 38, y + 24);
+        ctx.stroke();
     }
 }
 
@@ -506,8 +661,8 @@ class Enemy {
     constructor(x, y, type) {
         this.x = x;
         this.y = y;
-        this.width = 24;
-        this.height = 24;
+        this.width = 48;
+        this.height = 48;
         this.type = type;
         this.velocityX = type === 'patrol' ? 2 : 1;
         this.velocityY = 0;
@@ -578,25 +733,111 @@ class Enemy {
     draw(ctx) {
         if (this.defeated) return;
         
-        // Draw poacher
-        ctx.fillStyle = this.type === 'patrol' ? '#654321' : '#8B4513';
-        ctx.fillRect(this.x, this.y, this.width, this.height);
+        this.drawRealisticSprite(ctx);
+    }
+    
+    drawRealisticSprite(ctx) {
+        const x = this.x;
+        const y = this.y;
         
-        // Hat
+        // Head (darker skin tone for villains)
+        ctx.fillStyle = '#DDB892';
+        ctx.fillRect(x + 12, y + 2, 24, 16);
+        
+        // Camouflage cap
         ctx.fillStyle = '#2F4F2F';
-        ctx.fillRect(this.x + 3, this.y - 3, this.width - 6, 6);
+        ctx.fillRect(x + 8, y, 32, 6);
+        ctx.fillRect(x + 10, y + 2, 28, 4);
         
-        // Face
-        ctx.fillStyle = '#FFDBAC';
-        ctx.fillRect(this.x + 6, this.y + 3, this.width - 12, 10);
+        // Camo pattern on cap
+        ctx.fillStyle = '#1A3B1A';
+        ctx.fillRect(x + 12, y + 2, 4, 2);
+        ctx.fillRect(x + 20, y, 4, 2);
+        ctx.fillRect(x + 28, y + 2, 4, 2);
         
-        // Net for patrol poacher
+        // Eyes (menacing)
+        ctx.fillStyle = '#000';
+        ctx.fillRect(x + 16, y + 8, 2, 2);
+        ctx.fillRect(x + 30, y + 8, 2, 2);
+        
+        // Scowl/frown
+        ctx.fillStyle = '#000';
+        ctx.fillRect(x + 20, y + 14, 8, 2);
+        
+        // Neck
+        ctx.fillStyle = '#DDB892';
+        ctx.fillRect(x + 18, y + 18, 12, 4);
+        
+        // Camouflage shirt
+        ctx.fillStyle = '#4F6F4F';
+        ctx.fillRect(x + 12, y + 22, 24, 16);
+        
+        // Camo pattern on shirt
+        ctx.fillStyle = '#2F4F2F';
+        ctx.fillRect(x + 14, y + 24, 4, 4);
+        ctx.fillRect(x + 22, y + 26, 6, 4);
+        ctx.fillRect(x + 30, y + 24, 4, 4);
+        ctx.fillRect(x + 16, y + 32, 4, 4);
+        ctx.fillRect(x + 26, y + 34, 4, 2);
+        
+        // Arms
+        ctx.fillStyle = '#DDB892';
+        ctx.fillRect(x + 4, y + 24, 6, 12);  // Left arm
+        ctx.fillRect(x + 38, y + 24, 6, 12); // Right arm
+        
+        // Sleeve camo
+        ctx.fillStyle = '#4F6F4F';
+        ctx.fillRect(x + 4, y + 24, 6, 8);
+        ctx.fillRect(x + 38, y + 24, 6, 8);
+        
+        // Hands (holding weapons/tools)
+        ctx.fillStyle = '#DDB892';
+        ctx.fillRect(x + 4, y + 36, 6, 4);
+        ctx.fillRect(x + 38, y + 36, 6, 4);
+        
+        // Belt
+        ctx.fillStyle = '#654321';
+        ctx.fillRect(x + 12, y + 38, 24, 2);
+        
+        // Pants (dark green)
+        ctx.fillStyle = '#2F4F2F';
+        ctx.fillRect(x + 16, y + 40, 8, 8);  // Left leg
+        ctx.fillRect(x + 24, y + 40, 8, 8); // Right leg
+        
+        // Boots (black)
+        ctx.fillStyle = '#000';
+        ctx.fillRect(x + 14, y + 44, 10, 4);   // Left boot
+        ctx.fillRect(x + 24, y + 44, 10, 4);  // Right boot
+        
+        // Equipment based on type
         if (this.type === 'patrol') {
+            // Net in hand
             ctx.strokeStyle = '#8B4513';
+            ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(this.x + this.width + 5, this.y + 10, 8, 0, Math.PI * 2);
+            ctx.arc(x + 44, y + 28, 8, 0, Math.PI * 2);
             ctx.stroke();
+            
+            // Net handle
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(x + 40, y + 32, 2, 8);
+            
+            // Larger size for patrol
+            this.drawEquipmentBelt(ctx, x, y);
+        } else {
+            // Basic poacher - simple knife
+            ctx.fillStyle = '#C0C0C0';
+            ctx.fillRect(x + 2, y + 32, 2, 6);
+            ctx.fillStyle = '#654321';
+            ctx.fillRect(x + 2, y + 38, 2, 4);
         }
+    }
+    
+    drawEquipmentBelt(ctx, x, y) {
+        // Equipment pouches
+        ctx.fillStyle = '#654321';
+        ctx.fillRect(x + 14, y + 38, 4, 4);
+        ctx.fillRect(x + 26, y + 38, 4, 4);
     }
 }
 
@@ -604,8 +845,8 @@ class Boss {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.width = 48;
-        this.height = 48;
+        this.width = 96;
+        this.height = 96;
         this.health = 6;
         this.maxHealth = 6;
         this.defeated = false;
@@ -670,30 +911,125 @@ class Boss {
         
         // Flash when hit
         if (this.attackTimer < 10) {
-            ctx.fillStyle = '#FF6B6B';
-        } else {
-            ctx.fillStyle = '#4A4A4A';
+            ctx.globalAlpha = 0.7;
         }
         
-        ctx.fillRect(this.x, this.y, this.width, this.height);
-        
-        // Safari vest
-        ctx.fillStyle = '#DEB887';
-        ctx.fillRect(this.x + 8, this.y + 10, this.width - 16, 25);
-        
-        // Hat
-        ctx.fillStyle = '#2F4F2F';
-        ctx.fillRect(this.x + 6, this.y - 5, this.width - 12, 10);
-        
-        // Face
-        ctx.fillStyle = '#FFDBAC';
-        ctx.fillRect(this.x + 12, this.y + 5, this.width - 24, 15);
+        this.drawRealisticSprite(ctx);
         
         // Health bar
         ctx.fillStyle = '#FF0000';
         ctx.fillRect(this.x, this.y - 15, this.width, 5);
         ctx.fillStyle = '#00FF00';
         ctx.fillRect(this.x, this.y - 15, (this.width * this.health) / this.maxHealth, 5);
+        
+        ctx.globalAlpha = 1;
+    }
+    
+    drawRealisticSprite(ctx) {
+        const x = this.x;
+        const y = this.y;
+        
+        // Head (tanned, weathered skin)
+        ctx.fillStyle = '#CD853F';
+        ctx.fillRect(x + 24, y + 6, 48, 32);
+        
+        // Safari hat (wide brim)
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(x + 16, y, 64, 12);
+        ctx.fillRect(x + 12, y + 4, 72, 8);
+        
+        // Hat band
+        ctx.fillStyle = '#654321';
+        ctx.fillRect(x + 20, y + 6, 56, 4);
+        
+        // Feather in hat
+        ctx.fillStyle = '#228B22';
+        ctx.fillRect(x + 76, y + 2, 4, 16);
+        
+        // Eyes (intimidating)
+        ctx.fillStyle = '#000';
+        ctx.fillRect(x + 32, y + 16, 4, 4);
+        ctx.fillRect(x + 56, y + 16, 4, 4);
+        
+        // Eyebrows (thick, menacing)
+        ctx.fillStyle = '#654321';
+        ctx.fillRect(x + 30, y + 14, 8, 2);
+        ctx.fillRect(x + 54, y + 14, 8, 2);
+        
+        // Mustache (large)
+        ctx.fillStyle = '#654321';
+        ctx.fillRect(x + 36, y + 24, 24, 6);
+        
+        // Scar on face
+        ctx.fillStyle = '#8B0000';
+        ctx.fillRect(x + 28, y + 12, 2, 16);
+        
+        // Neck
+        ctx.fillStyle = '#CD853F';
+        ctx.fillRect(x + 36, y + 38, 24, 8);
+        
+        // Safari vest (dirty khaki)
+        ctx.fillStyle = '#B8A982';
+        ctx.fillRect(x + 20, y + 46, 56, 36);
+        
+        // Vest details
+        ctx.fillStyle = '#A0906C';
+        ctx.fillRect(x + 24, y + 50, 12, 8);  // Left pocket
+        ctx.fillRect(x + 60, y + 50, 12, 8);  // Right pocket
+        ctx.fillRect(x + 40, y + 50, 16, 28); // Center opening
+        
+        // Arms (muscular)
+        ctx.fillStyle = '#CD853F';
+        ctx.fillRect(x + 4, y + 48, 12, 24);  // Left arm
+        ctx.fillRect(x + 80, y + 48, 12, 24); // Right arm
+        
+        // Sleeves
+        ctx.fillStyle = '#B8A982';
+        ctx.fillRect(x + 6, y + 48, 8, 16);
+        ctx.fillRect(x + 82, y + 48, 8, 16);
+        
+        // Hands (large, intimidating)
+        ctx.fillStyle = '#CD853F';
+        ctx.fillRect(x + 4, y + 72, 12, 8);
+        ctx.fillRect(x + 80, y + 72, 12, 8);
+        
+        // Weapon in hand (whip)
+        ctx.strokeStyle = '#8B4513';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(x + 8, y + 76);
+        ctx.lineTo(x - 10, y + 90);
+        ctx.stroke();
+        
+        // Belt (thick leather)
+        ctx.fillStyle = '#654321';
+        ctx.fillRect(x + 20, y + 82, 56, 6);
+        
+        // Belt buckle (large)
+        ctx.fillStyle = '#FFD700';
+        ctx.fillRect(x + 44, y + 80, 8, 10);
+        
+        // Pants (dark safari)
+        ctx.fillStyle = '#8B7355';
+        ctx.fillRect(x + 28, y + 88, 16, 8);  // Left leg
+        ctx.fillRect(x + 52, y + 88, 16, 8);  // Right leg
+        
+        // Boots (tall, leather)
+        ctx.fillStyle = '#654321';
+        ctx.fillRect(x + 24, y + 88, 24, 8);  // Left boot
+        ctx.fillRect(x + 48, y + 88, 24, 8);  // Right boot
+        
+        // Boot buckles
+        ctx.fillStyle = '#C0C0C0';
+        ctx.fillRect(x + 28, y + 90, 4, 2);
+        ctx.fillRect(x + 36, y + 90, 4, 2);
+        ctx.fillRect(x + 52, y + 90, 4, 2);
+        ctx.fillRect(x + 60, y + 90, 4, 2);
+        
+        // Equipment pouches
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(x + 16, y + 70, 8, 12);   // Left pouch
+        ctx.fillRect(x + 72, y + 70, 8, 12);  // Right pouch
     }
 }
 
