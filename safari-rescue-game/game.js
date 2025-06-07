@@ -28,7 +28,7 @@ class Game {
         
         // Load background image
         this.backgroundImage = new Image();
-        this.backgroundImage.src = 'images/savannah_background.png';
+        this.backgroundImage.src = 'images/savannah_background2.png';
         this.backgroundLoaded = false;
         this.backgroundImage.onload = () => {
             this.backgroundLoaded = true;
@@ -462,19 +462,49 @@ class Player {
         this.health = 3;
         this.invulnerable = false;
         this.invulnerabilityTimer = 0;
-        this.moveSpeed = 5;
+        this.maxSpeed = 5;
+        this.acceleration = 0.4;
+        this.friction = 0.8;
         this.jumpPower = 8;
         this.jumpHeld = false;
     }
     
     update(keys, platforms) {
-        // Handle input
-        this.velocityX = 0;
+        // Handle horizontal input with realistic physics
+        let inputDirection = 0;
         if (keys['a'] || keys['arrowleft']) {
-            this.velocityX = -this.moveSpeed;
+            inputDirection = -1;
         }
         if (keys['d'] || keys['arrowright']) {
-            this.velocityX = this.moveSpeed;
+            inputDirection = 1;
+        }
+        
+        // Apply acceleration or deceleration
+        if (inputDirection !== 0) {
+            // Player is pressing a direction
+            if (Math.sign(this.velocityX) === inputDirection || this.velocityX === 0) {
+                // Accelerating in same direction or starting from rest
+                this.velocityX += inputDirection * this.acceleration;
+            } else {
+                // Changing direction - apply stronger deceleration first
+                this.velocityX += inputDirection * this.acceleration * 2;
+            }
+            
+            // Cap at max speed
+            this.velocityX = Math.max(-this.maxSpeed, Math.min(this.maxSpeed, this.velocityX));
+        } else {
+            // No input - apply friction
+            if (this.onGround) {
+                this.velocityX *= this.friction;
+                // Stop very small movements to prevent endless sliding
+                if (Math.abs(this.velocityX) < 0.1) {
+                    this.velocityX = 0;
+                }
+            }
+            // In air, apply much less friction
+            else {
+                this.velocityX *= 0.98;
+            }
         }
         
         // Variable height jumping
