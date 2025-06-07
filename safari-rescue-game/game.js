@@ -534,6 +534,8 @@ class Player {
         
         // Platform collision (Mario-style one-way platforms)
         this.onGround = false;
+        this.standingOnPlatform = null;
+        
         platforms.forEach(platform => {
             // Check horizontal overlap
             if (this.x < platform.x + platform.width &&
@@ -551,9 +553,15 @@ class Player {
                     this.y = platform.y - this.height;
                     this.velocityY = 0;
                     this.onGround = true;
+                    this.standingOnPlatform = platform;
                 }
             }
         });
+        
+        // Move with moving platform
+        if (this.standingOnPlatform && this.standingOnPlatform.type === 'moving') {
+            this.x += this.standingOnPlatform.moveSpeed;
+        }
         
         // World boundaries
         if (this.x < 0) this.x = 0;
