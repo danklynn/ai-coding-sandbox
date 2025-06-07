@@ -2,8 +2,10 @@ class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
-        this.canvas.width = 1200;
-        this.canvas.height = 600;
+        this.resizeCanvas();
+        
+        // Listen for window resize
+        window.addEventListener('resize', () => this.resizeCanvas());
         
         this.camera = { x: 0, y: 0 };
         this.levelWidth = 2000;
@@ -26,6 +28,11 @@ class Game {
         this.init();
         this.setupLevel();
         this.gameLoop();
+    }
+    
+    resizeCanvas() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
     }
     
     init() {
@@ -228,10 +235,7 @@ class Game {
         this.gameState = 'victory';
         this.updateUI();
         
-        // Victory sequence
-        setTimeout(() => {
-            alert('Baby Elephant Rescued! 🐘\nLevel Complete!\nFinal Score: ' + this.score);
-        }, 1000);
+        // Victory sequence handled by drawVictoryScreen
     }
     
     updateCamera() {
