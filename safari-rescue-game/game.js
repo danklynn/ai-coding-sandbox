@@ -188,6 +188,11 @@ class Game {
                     // Player jumping on enemy - successful stomp
                     this.defeatEnemy(enemy, index);
                     this.player.velocityY = -8; // Bounce
+                    
+                    // Ensure player doesn't fall through platform after bounce
+                    if (this.player.onGround) {
+                        this.player.y = Math.min(this.player.y, enemy.y - this.player.height);
+                    }
                 } else if (!this.player.invulnerable) {
                     // Player takes damage - but only if not in stomp position
                     const horizontalOverlap = Math.min(this.player.x + this.player.width, enemy.x + enemy.width) - 
@@ -212,6 +217,12 @@ class Game {
                 this.boss.takeDamage();
                 this.player.velocityY = -8;
                 this.score += 300;
+                
+                // Ensure player doesn't fall through platform after bounce
+                if (this.player.onGround) {
+                    this.player.y = Math.min(this.player.y, this.boss.y - this.player.height);
+                }
+                
                 if (this.boss.health <= 0) {
                     this.defeatBoss();
                 }
@@ -498,11 +509,14 @@ class Player {
             if (this.x < platform.x + platform.width &&
                 this.x + this.width > platform.x) {
                 
-                // Only check for landing on top if falling down
+                // Only check for landing on top if falling down and coming from above
+                const playerBottom = this.y + this.height;
+                const playerPreviousBottom = playerBottom - this.velocityY;
+                
                 if (this.velocityY > 0 && 
-                    this.y + this.height - this.velocityY <= platform.y && 
-                    this.y + this.height >= platform.y &&
-                    this.y + this.height <= platform.y + 10) { // Small tolerance for landing
+                    playerPreviousBottom <= platform.y && 
+                    playerBottom >= platform.y &&
+                    playerBottom <= platform.y + 15) { // Slightly larger tolerance
                     // Landing on top from above
                     this.y = platform.y - this.height;
                     this.velocityY = 0;
