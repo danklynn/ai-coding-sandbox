@@ -65,6 +65,22 @@ class Game {
             this.grassPlatformImageLoaded = true;
         };
         
+        // Load banana fruit sprite
+        this.bananaImage = new Image();
+        this.bananaImage.src = 'images/items/banana.png';
+        this.bananaImageLoaded = false;
+        this.bananaImage.onload = () => {
+            this.bananaImageLoaded = true;
+        };
+        
+        // Load apple fruit sprite
+        this.appleImage = new Image();
+        this.appleImage.src = 'images/items/apple.png';
+        this.appleImageLoaded = false;
+        this.appleImage.onload = () => {
+            this.appleImageLoaded = true;
+        };
+        
         this.init();
         this.setupLevel();
         
@@ -1244,21 +1260,50 @@ class Fruit {
     
     draw(ctx) {
         const bobY = this.y + Math.sin(Date.now() * 0.005 + this.bobOffset) * this.bobAmount;
+        const game = window.game;
         
         if (this.type === 'golden') {
-            ctx.fillStyle = '#FFD700';
-            ctx.fillRect(this.x, bobY, this.width, this.height);
-            // Add sparkle effect
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(this.x + 2, bobY + 2, 2, 2);
-            ctx.fillRect(this.x + 12, bobY + 6, 2, 2);
-            ctx.fillRect(this.x + 6, bobY + 12, 2, 2);
+            // Golden fruit - apple sprite
+            if (game && game.appleImageLoaded) {
+                ctx.drawImage(
+                    game.appleImage,
+                    this.x,
+                    bobY,
+                    this.width,
+                    this.height
+                );
+                // Add sparkle effect with bright red particles
+                ctx.fillStyle = '#FF4444';
+                ctx.fillRect(this.x + 2, bobY + 2, 3, 3);
+                ctx.fillRect(this.x + 11, bobY + 6, 3, 3);
+                ctx.fillRect(this.x + 6, bobY + 11, 3, 3);
+            } else {
+                // Fallback to golden rectangle if image not loaded
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(this.x, bobY, this.width, this.height);
+                // Add sparkle effect
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(this.x + 2, bobY + 2, 2, 2);
+                ctx.fillRect(this.x + 12, bobY + 6, 2, 2);
+                ctx.fillRect(this.x + 6, bobY + 12, 2, 2);
+            }
         } else {
-            // Regular fruit - banana
-            ctx.fillStyle = '#FFFF00';
-            ctx.beginPath();
-            ctx.arc(this.x + this.width/2, bobY + this.height/2, this.width/2, 0, Math.PI * 2);
-            ctx.fill();
+            // Regular fruit - banana sprite
+            if (game && game.bananaImageLoaded) {
+                ctx.drawImage(
+                    game.bananaImage,
+                    this.x,
+                    bobY,
+                    this.width,
+                    this.height
+                );
+            } else {
+                // Fallback to yellow circle if image not loaded
+                ctx.fillStyle = '#FFFF00';
+                ctx.beginPath();
+                ctx.arc(this.x + this.width/2, bobY + this.height/2, this.width/2, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
     }
 }
@@ -1288,7 +1333,7 @@ class Particle {
         if (this.type === 'collect') {
             ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
         } else {
-            ctx.fillStyle = `rgba(255, 100, 100, ${alpha})`;
+            ctx.fillStyle = `rgba(128, 128, 128, ${alpha})`; // Gray particles for enemy defeat
         }
         
         ctx.fillRect(this.x, this.y, this.size, this.size);
