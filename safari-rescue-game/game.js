@@ -15,7 +15,7 @@ class Game {
         
         this.score = 0;
         this.fruitsCollected = 0;
-        this.totalFruits = 30;
+        this.totalFruits = 25;
         this.lives = 3;
         
         this.platforms = [];
@@ -155,22 +155,25 @@ class Game {
             // Easy finds on main path
             {x: 150, y: 520}, {x: 250, y: 520}, {x: 380, y: 470},
             {x: 550, y: 420}, {x: 750, y: 370}, {x: 930, y: 320},
-            {x: 1080, y: 290}, {x: 1250, y: 350}, {x: 1300, y: 350},
+            {x: 1080, y: 290}, {x: 1250, y: 350},
             
             // Risk/reward positions
             {x: 475, y: 400}, {x: 625, y: 380}, {x: 875, y: 300},
-            {x: 1025, y: 270}, {x: 1175, y: 330}, {x: 1325, y: 300},
+            {x: 1025, y: 270},
+            
+            // Moving platform challenge area
+            {x: 1380, y: 270}, {x: 1420, y: 270}, {x: 1530, y: 220}, 
+            {x: 1570, y: 220}, {x: 1450, y: 180},
             
             // Hidden/secret positions
             {x: 50, y: 500}, {x: 200, y: 480}, {x: 525, y: 380},
-            {x: 675, y: 350}, {x: 825, y: 280}, {x: 975, y: 250},
+            {x: 675, y: 350}, {x: 825, y: 280},
             
             // Boss area fruits
             {x: 1780, y: 320}, {x: 1880, y: 290}, {x: 1980, y: 320},
             
-            // Additional fruits to reach 30
-            {x: 300, y: 500}, {x: 600, y: 400}, {x: 800, y: 350},
-            {x: 1000, y: 300}, {x: 1400, y: 270}, {x: 1600, y: 220}
+            // Additional fruits
+            {x: 600, y: 400}, {x: 1000, y: 300}
         ];
         
         this.fruits = fruitPositions.map((pos, index) => 
