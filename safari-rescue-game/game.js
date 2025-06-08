@@ -44,7 +44,7 @@ class Game {
         
         // Load player sprite images
         this.playerImage = new Image();
-        this.playerImage.src = 'images/player/player_forward_left.png';
+        this.playerImage.src = 'images/player/player_standing_left.png';
         this.playerImageLoaded = false;
         this.playerImage.onload = () => {
             this.playerImageLoaded = true;
