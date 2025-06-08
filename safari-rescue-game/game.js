@@ -50,11 +50,18 @@ class Game {
             this.playerImageLoaded = true;
         };
         
-        this.playerRunningImage = new Image();
-        this.playerRunningImage.src = 'images/player/player_running_left_A.png';
-        this.playerRunningImageLoaded = false;
-        this.playerRunningImage.onload = () => {
-            this.playerRunningImageLoaded = true;
+        this.playerRunningImageA = new Image();
+        this.playerRunningImageA.src = 'images/player/player_running_left_A.png';
+        this.playerRunningImageALoaded = false;
+        this.playerRunningImageA.onload = () => {
+            this.playerRunningImageALoaded = true;
+        };
+        
+        this.playerRunningImageB = new Image();
+        this.playerRunningImageB.src = 'images/player/player_running_left_B.png';
+        this.playerRunningImageBLoaded = false;
+        this.playerRunningImageB.onload = () => {
+            this.playerRunningImageBLoaded = true;
         };
         
         // Load grass platform texture
@@ -809,6 +816,8 @@ class Player {
         this.jumpHeld = false;
         this.facingDirection = -1; // -1 for left (default), 1 for right
         this.isMoving = false;
+        this.animationTimer = 0;
+        this.animationFrame = 0; // 0 for frame A, 1 for frame B
     }
     
     update(keys, platforms) {
@@ -825,6 +834,19 @@ class Player {
         
         // Track if player is moving (has significant velocity)
         this.isMoving = Math.abs(this.velocityX) > 0.5;
+        
+        // Update running animation when moving and on ground
+        if (this.isMoving && this.onGround) {
+            this.animationTimer++;
+            if (this.animationTimer >= 10) { // Change frame every 10 game ticks (about 6 FPS at 60 FPS)
+                this.animationFrame = (this.animationFrame + 1) % 2;
+                this.animationTimer = 0;
+            }
+        } else {
+            // Reset to frame A when not moving or in air
+            this.animationFrame = 0;
+            this.animationTimer = 0;
+        }
         
         // Apply acceleration or deceleration
         if (inputDirection !== 0) {
@@ -976,14 +998,25 @@ class Player {
     drawSprite(ctx) {
         const game = window.game;
         
-        // Determine which sprite to use - running when moving, standing when not
+        // Determine which sprite to use based on movement and animation frame
         let currentImage = null;
         let imageLoaded = false;
         
-        if (this.isMoving && game && game.playerRunningImageLoaded) {
-            currentImage = game.playerRunningImage;
+        if (this.isMoving && this.onGround && game) {
+            // Running animation - alternate between A and B frames
+            if (this.animationFrame === 0 && game.playerRunningImageALoaded) {
+                currentImage = game.playerRunningImageA;
+                imageLoaded = true;
+            } else if (this.animationFrame === 1 && game.playerRunningImageBLoaded) {
+                currentImage = game.playerRunningImageB;
+                imageLoaded = true;
+            }
+        } else if ((this.isMoving && !this.onGround) && game && game.playerRunningImageALoaded) {
+            // In air - always use frame A
+            currentImage = game.playerRunningImageA;
             imageLoaded = true;
         } else if (game && game.playerImageLoaded) {
+            // Standing still - use standing sprite
             currentImage = game.playerImage;
             imageLoaded = true;
         }
