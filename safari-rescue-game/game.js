@@ -81,6 +81,28 @@ class Game {
             this.appleImageLoaded = true;
         };
         
+        // Load log platform sprites
+        this.logPlatformLeftImage = new Image();
+        this.logPlatformLeftImage.src = 'images/environment/platform_log_left.png';
+        this.logPlatformLeftImageLoaded = false;
+        this.logPlatformLeftImage.onload = () => {
+            this.logPlatformLeftImageLoaded = true;
+        };
+        
+        this.logPlatformMiddleImage = new Image();
+        this.logPlatformMiddleImage.src = 'images/environment/platform_log_middle.png';
+        this.logPlatformMiddleImageLoaded = false;
+        this.logPlatformMiddleImage.onload = () => {
+            this.logPlatformMiddleImageLoaded = true;
+        };
+        
+        this.logPlatformRightImage = new Image();
+        this.logPlatformRightImage.src = 'images/environment/platform_log_right.png';
+        this.logPlatformRightImageLoaded = false;
+        this.logPlatformRightImage.onload = () => {
+            this.logPlatformRightImageLoaded = true;
+        };
+        
         this.init();
         this.setupLevel();
         
@@ -477,8 +499,93 @@ class Game {
                     remainingWidth, desiredHeight // Destination size (scale height to fit)
                 );
             }
+        } else if (platform.type === 'log' && this.logPlatformLeftImageLoaded && 
+                   this.logPlatformMiddleImageLoaded && this.logPlatformRightImageLoaded) {
+            // Draw log platform with left-middle-right sprite composition
+            const leftSprite = this.logPlatformLeftImage;
+            const middleSprite = this.logPlatformMiddleImage;
+            const rightSprite = this.logPlatformRightImage;
+            
+            const leftWidth = leftSprite.width;
+            const rightWidth = rightSprite.width;
+            const middleWidth = middleSprite.width;
+            
+            // Calculate how much space is available for the middle section
+            const middleSpaceWidth = platform.width - leftWidth - rightWidth;
+            
+            if (middleSpaceWidth > 0) {
+                // Draw left sprite at natural size
+                this.ctx.drawImage(
+                    leftSprite,
+                    platform.x,
+                    platform.y,
+                    leftWidth,
+                    leftSprite.height
+                );
+                
+                // Tile middle sprite across the available middle space at natural size
+                const numMiddleTiles = Math.ceil(middleSpaceWidth / middleWidth);
+                for (let i = 0; i < numMiddleTiles; i++) {
+                    const middleX = platform.x + leftWidth + (i * middleWidth);
+                    const remainingWidth = Math.min(middleWidth, middleSpaceWidth - (i * middleWidth));
+                    
+                    this.ctx.drawImage(
+                        middleSprite,
+                        0, 0, // Source position
+                        remainingWidth, middleSprite.height, // Source size (crop width if needed, keep natural height)
+                        middleX, platform.y, // Destination position
+                        remainingWidth, middleSprite.height // Destination size (natural size, no scaling)
+                    );
+                }
+                
+                // Draw right sprite at natural size
+                this.ctx.drawImage(
+                    rightSprite,
+                    platform.x + platform.width - rightWidth,
+                    platform.y,
+                    rightWidth,
+                    rightSprite.height
+                );
+            } else {
+                // Platform too small for all three sprites, draw left and right only
+                const combinedWidth = leftWidth + rightWidth;
+                if (platform.width >= combinedWidth) {
+                    // Draw left sprite
+                    this.ctx.drawImage(
+                        leftSprite,
+                        platform.x,
+                        platform.y,
+                        leftWidth,
+                        leftSprite.height
+                    );
+                    
+                    // Draw right sprite
+                    this.ctx.drawImage(
+                        rightSprite,
+                        platform.x + platform.width - rightWidth,
+                        platform.y,
+                        rightWidth,
+                        rightSprite.height
+                    );
+                } else {
+                    // Platform extremely small, just tile middle sprite
+                    const numTiles = Math.ceil(platform.width / middleWidth);
+                    for (let i = 0; i < numTiles; i++) {
+                        const tileX = platform.x + (i * middleWidth);
+                        const remainingWidth = Math.min(middleWidth, platform.width - (i * middleWidth));
+                        
+                        this.ctx.drawImage(
+                            middleSprite,
+                            0, 0,
+                            remainingWidth, middleSprite.height,
+                            tileX, platform.y,
+                            remainingWidth, middleSprite.height
+                        );
+                    }
+                }
+            }
         } else {
-            // Fallback to solid colors for other platform types or if grass texture not loaded
+            // Fallback to solid colors for other platform types or if textures not loaded
             let color;
             switch (platform.type) {
                 case 'grass': color = '#90EE90'; break;
