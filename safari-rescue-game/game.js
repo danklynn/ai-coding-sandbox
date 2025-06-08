@@ -303,9 +303,13 @@ class Game {
         this.score += fruit.type === 'golden' ? 50 : 10;
         this.updateUI();
         
-        // Add particle effect
+        // Add particle effect with color matching fruit type
+        const particleColor = fruit.type === 'golden' 
+            ? {r: 220, g: 55, b: 47}   // Red particles for apples (matching apple color)
+            : {r: 255, g: 215, b: 0};  // Golden particles for bananas
+            
         for (let i = 0; i < 5; i++) {
-            this.particles.push(new Particle(fruit.x + fruit.width/2, fruit.y + fruit.height/2, 'collect'));
+            this.particles.push(new Particle(fruit.x + fruit.width/2, fruit.y + fruit.height/2, particleColor));
         }
     }
     
@@ -321,9 +325,9 @@ class Game {
         
         this.updateUI();
         
-        // Add defeat particles
+        // Add defeat particles - gray for enemy defeat
         for (let i = 0; i < 8; i++) {
-            this.particles.push(new Particle(enemy.x + enemy.width/2, enemy.y + enemy.height/2, 'defeat'));
+            this.particles.push(new Particle(enemy.x + enemy.width/2, enemy.y + enemy.height/2, {r: 128, g: 128, b: 128}));
         }
     }
     
@@ -1312,14 +1316,14 @@ class Fruit {
 }
 
 class Particle {
-    constructor(x, y, type) {
+    constructor(x, y, color) {
         this.x = x;
         this.y = y;
         this.velocityX = (Math.random() - 0.5) * 6;
         this.velocityY = (Math.random() - 0.5) * 6;
         this.life = 60;
         this.maxLife = 60;
-        this.type = type;
+        this.color = color; // RGB color object {r, g, b}
         this.size = Math.random() * 4 + 2;
     }
     
@@ -1332,13 +1336,7 @@ class Particle {
     
     draw(ctx) {
         const alpha = this.life / this.maxLife;
-        
-        if (this.type === 'collect') {
-            ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
-        } else {
-            ctx.fillStyle = `rgba(128, 128, 128, ${alpha})`; // Gray particles for enemy defeat
-        }
-        
+        ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${alpha})`;
         ctx.fillRect(this.x, this.y, this.size, this.size);
     }
 }
