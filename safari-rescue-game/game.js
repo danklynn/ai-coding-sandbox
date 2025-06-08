@@ -42,6 +42,14 @@ class Game {
             this.babyElephantLoaded = true;
         };
         
+        // Load baby elephant free image
+        this.babyElephantFreeImage = new Image();
+        this.babyElephantFreeImage.src = 'images/baby_elephant_free.png';
+        this.babyElephantFreeLoaded = false;
+        this.babyElephantFreeImage.onload = () => {
+            this.babyElephantFreeLoaded = true;
+        };
+        
         // Load player sprite images
         this.playerImage = new Image();
         this.playerImage.src = 'images/player/player_standing_left.png';
@@ -86,6 +94,14 @@ class Game {
         this.appleImageLoaded = false;
         this.appleImage.onload = () => {
             this.appleImageLoaded = true;
+        };
+        
+        // Load pink heart sprite
+        this.pinkHeartImage = new Image();
+        this.pinkHeartImage.src = 'images/items/pink_heart.png';
+        this.pinkHeartImageLoaded = false;
+        this.pinkHeartImage.onload = () => {
+            this.pinkHeartImageLoaded = true;
         };
         
         // Load log platform sprites
@@ -233,7 +249,7 @@ class Game {
     }
     
     update() {
-        if (this.gameState !== 'playing') return;
+        if (this.gameState !== 'playing' && this.gameState !== 'victory') return;
         
         this.player.update(this.keys, this.platforms);
         
@@ -739,18 +755,23 @@ class Game {
     }
     
     drawVictoryScreen() {
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        // No dark overlay - let the game world remain visible
         
+        // Victory message at top of screen
         this.ctx.fillStyle = '#FFD700';
-        this.ctx.font = '48px Arial';
+        this.ctx.font = '32px Courier New, monospace';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('VICTORY!', this.canvas.width / 2, this.canvas.height / 2 - 50);
+        this.ctx.strokeStyle = '#000000';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeText('VICTORY!', this.canvas.width / 2, 80);
+        this.ctx.fillText('VICTORY!', this.canvas.width / 2, 80);
         
         this.ctx.fillStyle = '#FFFFFF';
-        this.ctx.font = '24px Arial';
-        this.ctx.fillText('Baby Elephant Rescued! 🐘', this.canvas.width / 2, this.canvas.height / 2);
-        this.ctx.fillText(`Final Score: ${this.score}`, this.canvas.width / 2, this.canvas.height / 2 + 40);
+        this.ctx.font = '18px Courier New, monospace';
+        this.ctx.strokeText('Baby Elephant Rescued!', this.canvas.width / 2, 110);
+        this.ctx.fillText('Baby Elephant Rescued!', this.canvas.width / 2, 110);
+        this.ctx.strokeText(`Final Score: ${this.score}`, this.canvas.width / 2, 135);
+        this.ctx.fillText(`Final Score: ${this.score}`, this.canvas.width / 2, 135);
     }
     
     drawGameOverScreen() {
@@ -758,13 +779,13 @@ class Game {
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
         this.ctx.fillStyle = '#FF0000';
-        this.ctx.font = '48px Arial';
+        this.ctx.font = '32px Courier New, monospace';
         this.ctx.textAlign = 'center';
         this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2 - 50);
         
         this.ctx.fillStyle = '#FFFFFF';
-        this.ctx.font = '24px Arial';
-        this.ctx.fillText('The animals need your help! 🦏', this.canvas.width / 2, this.canvas.height / 2);
+        this.ctx.font = '18px Courier New, monospace';
+        this.ctx.fillText('The animals need your help!', this.canvas.width / 2, this.canvas.height / 2);
         this.ctx.fillText(`Final Score: ${this.score}`, this.canvas.width / 2, this.canvas.height / 2 + 40);
         this.ctx.fillText('Press F5 to try again', this.canvas.width / 2, this.canvas.height / 2 + 80);
     }
@@ -772,7 +793,7 @@ class Game {
     drawBabyElephantCage() {
         if (!this.boss) return;
         
-        // Position the cage at a fixed location based on boss's original position
+        // Position the cage/elephant at a fixed location based on boss's original position
         // This keeps the cage stationary even when the boss charges around
         const cageX = this.boss.originalX + this.boss.width + 30;
         const cageY = this.boss.y + 20; // Use current Y position for platform alignment
@@ -781,13 +802,40 @@ class Game {
         const cageWidth = 120;
         const cageHeight = 120;
         
-        this.ctx.drawImage(
-            this.babyElephantImage,
-            cageX,
-            cageY,
-            cageWidth,
-            cageHeight
-        );
+        // Show free elephant if boss is defeated, otherwise show caged elephant
+        if (this.boss.defeated && this.babyElephantFreeLoaded) {
+            this.ctx.drawImage(
+                this.babyElephantFreeImage,
+                cageX,
+                cageY,
+                cageWidth,
+                cageHeight
+            );
+            
+            // Show floating heart near elephant's face when free (gratitude animation)
+            if (this.pinkHeartImageLoaded) {
+                const heartSize = 24;
+                const heartX = cageX + cageWidth - 30; // Near the elephant's face
+                // Floating animation like fruits - using Date.now() with different offset for heart
+                const heartY = cageY + 20 + Math.sin(Date.now() * 0.005 + Math.PI) * 5; // PI offset for different phase
+                
+                this.ctx.drawImage(
+                    this.pinkHeartImage,
+                    heartX,
+                    heartY,
+                    heartSize,
+                    heartSize
+                );
+            }
+        } else if (this.babyElephantLoaded) {
+            this.ctx.drawImage(
+                this.babyElephantImage,
+                cageX,
+                cageY,
+                cageWidth,
+                cageHeight
+            );
+        }
     }
     
     gameLoop() {
