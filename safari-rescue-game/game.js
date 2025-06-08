@@ -42,6 +42,21 @@ class Game {
             this.babyElephantLoaded = true;
         };
         
+        // Load player sprite images
+        this.playerImage = new Image();
+        this.playerImage.src = 'images/player/player_forward_left.png';
+        this.playerImageLoaded = false;
+        this.playerImage.onload = () => {
+            this.playerImageLoaded = true;
+        };
+        
+        this.playerRunningImage = new Image();
+        this.playerRunningImage.src = 'images/player/player_running_left_A.png';
+        this.playerRunningImageLoaded = false;
+        this.playerRunningImage.onload = () => {
+            this.playerRunningImageLoaded = true;
+        };
+        
         this.init();
         this.setupLevel();
         
@@ -502,6 +517,8 @@ class Player {
         this.friction = 0.8;
         this.jumpPower = 8;
         this.jumpHeld = false;
+        this.facingDirection = -1; // -1 for left (default), 1 for right
+        this.isMoving = false;
     }
     
     update(keys, platforms) {
@@ -509,10 +526,15 @@ class Player {
         let inputDirection = 0;
         if (keys['a'] || keys['arrowleft']) {
             inputDirection = -1;
+            this.facingDirection = -1; // Face left
         }
         if (keys['d'] || keys['arrowright']) {
             inputDirection = 1;
+            this.facingDirection = 1; // Face right
         }
+        
+        // Track if player is moving (has significant velocity)
+        this.isMoving = Math.abs(this.velocityX) > 0.5;
         
         // Apply acceleration or deceleration
         if (inputDirection !== 0) {
@@ -656,12 +678,60 @@ class Player {
             ctx.globalAlpha = 0.5;
         }
         
-        this.drawRealisticSprite(ctx);
+        this.drawSprite(ctx);
         
         ctx.globalAlpha = 1;
     }
     
-    drawRealisticSprite(ctx) {
+    drawSprite(ctx) {
+        const game = window.game;
+        
+        // Determine which sprite to use - running when moving, standing when not
+        let currentImage = null;
+        let imageLoaded = false;
+        
+        if (this.isMoving && game && game.playerRunningImageLoaded) {
+            currentImage = game.playerRunningImage;
+            imageLoaded = true;
+        } else if (game && game.playerImageLoaded) {
+            currentImage = game.playerImage;
+            imageLoaded = true;
+        }
+        
+        // If player image is loaded, use it; otherwise fallback to realistic sprite
+        if (imageLoaded && currentImage) {
+            ctx.save();
+            
+            // Handle horizontal flipping for right-facing direction
+            if (this.facingDirection === 1) {
+                // Flip horizontally for right-facing
+                ctx.scale(-1, 1);
+                ctx.drawImage(
+                    currentImage,
+                    -(this.x + this.width), // Flip the x position
+                    this.y,
+                    this.width,
+                    this.height
+                );
+            } else {
+                // Normal left-facing (default)
+                ctx.drawImage(
+                    currentImage,
+                    this.x,
+                    this.y,
+                    this.width,
+                    this.height
+                );
+            }
+            
+            ctx.restore();
+        } else {
+            // Fallback to realistic sprite if image not loaded
+            this.drawRealisticSpriteFallback(ctx);
+        }
+    }
+    
+    drawRealisticSpriteFallback(ctx) {
         const x = this.x;
         const y = this.y;
         
