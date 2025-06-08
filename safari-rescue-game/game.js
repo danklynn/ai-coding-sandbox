@@ -59,7 +59,7 @@ class Game {
         
         // Load grass platform texture
         this.grassPlatformImage = new Image();
-        this.grassPlatformImage.src = 'images/grass_platform_middle.png';
+        this.grassPlatformImage.src = 'images/environment/platform_grass_middle.png';
         this.grassPlatformImageLoaded = false;
         this.grassPlatformImage.onload = () => {
             this.grassPlatformImageLoaded = true;
