@@ -547,191 +547,25 @@ class Game {
         } else if (platform.type === 'log' && this.logPlatformLeftImageLoaded && 
                    this.logPlatformMiddleImageLoaded && this.logPlatformRightImageLoaded) {
             // Draw log platform with left-middle-right sprite composition
-            const leftSprite = this.logPlatformLeftImage;
-            const middleSprite = this.logPlatformMiddleImage;
-            const rightSprite = this.logPlatformRightImage;
-            
-            const leftWidth = leftSprite.width;
-            const rightWidth = rightSprite.width;
-            const middleWidth = middleSprite.width;
-            
-            // Calculate how much space is available for the middle section
-            const middleSpaceWidth = platform.width - leftWidth - rightWidth;
-            
-            
-            if (middleSpaceWidth > 0) {
-                // Draw left sprite at natural size
-                this.ctx.drawImage(
-                    leftSprite,
-                    platform.x,
-                    platform.y,
-                    leftWidth,
-                    leftSprite.height
-                );
-                
-                // Tile middle sprite across the available middle space at natural size
-                const numMiddleTiles = Math.ceil(middleSpaceWidth / middleWidth);
-                for (let i = 0; i < numMiddleTiles; i++) {
-                    const middleX = platform.x + leftWidth + (i * middleWidth);
-                    const remainingWidth = Math.min(middleWidth, middleSpaceWidth - (i * middleWidth));
-                    
-                    this.ctx.drawImage(
-                        middleSprite,
-                        0, 0, // Source position
-                        remainingWidth, middleSprite.height, // Source size (crop width if needed, keep natural height)
-                        middleX, platform.y, // Destination position
-                        remainingWidth, middleSprite.height // Destination size (natural size, no scaling)
-                    );
-                }
-                
-                // Draw right sprite at natural size
-                this.ctx.drawImage(
-                    rightSprite,
-                    platform.x + platform.width - rightWidth,
-                    platform.y,
-                    rightWidth,
-                    rightSprite.height
-                );
-            } else {
-                // Platform too small for all three sprites, draw left and right only with scaling
-                const combinedWidth = leftWidth + rightWidth;
-                if (platform.width >= combinedWidth) {
-                    // Draw left sprite
-                    this.ctx.drawImage(
-                        leftSprite,
-                        platform.x,
-                        platform.y,
-                        leftWidth,
-                        leftSprite.height
-                    );
-                    
-                    // Draw right sprite
-                    this.ctx.drawImage(
-                        rightSprite,
-                        platform.x + platform.width - rightWidth,
-                        platform.y,
-                        rightWidth,
-                        rightSprite.height
-                    );
-                } else {
-                    // Scale left and right sprites to fit the platform
-                    const scale = platform.width / combinedWidth;
-                    const scaledLeftWidth = leftWidth * scale;
-                    const scaledRightWidth = rightWidth * scale;
-                    
-                    // Draw scaled left sprite
-                    this.ctx.drawImage(
-                        leftSprite,
-                        platform.x,
-                        platform.y,
-                        scaledLeftWidth,
-                        leftSprite.height
-                    );
-                    
-                    // Draw scaled right sprite
-                    this.ctx.drawImage(
-                        rightSprite,
-                        platform.x + platform.width - scaledRightWidth,
-                        platform.y,
-                        scaledRightWidth,
-                        rightSprite.height
-                    );
-                }
-            }
+            this.drawThreeSpritePlatform(
+                platform,
+                this.logPlatformLeftImage,
+                this.logPlatformMiddleImage,
+                this.logPlatformRightImage,
+                this.logPlatformLeftImage.height // Use natural sprite height for log platforms
+            );
         } else if (platform.type === 'rock' && this.rockPlatformLeftImageLoaded && 
                    this.rockPlatformMiddleImageLoaded && this.rockPlatformRightImageLoaded) {
-            // Draw rock platform with left-middle-right sprite composition, scaled to platform height
-            const leftSprite = this.rockPlatformLeftImage;
-            const middleSprite = this.rockPlatformMiddleImage;
-            const rightSprite = this.rockPlatformRightImage;
-            
-            const leftWidth = leftSprite.width;
-            const rightWidth = rightSprite.width;
-            const middleWidth = middleSprite.width;
-            
-            // Calculate how much space is available for the middle section
-            const middleSpaceWidth = platform.width - leftWidth - rightWidth;
+            // Draw rock platform with left-middle-right sprite composition, scaled up for visibility
             const renderHeight = platform.height * 1.5; // Scale up slightly for visibility
-            
-            if (middleSpaceWidth > 0) {
-                // Draw left sprite scaled to render height
-                this.ctx.drawImage(
-                    leftSprite,
-                    platform.x,
-                    platform.y - (renderHeight - platform.height) / 2, // Center vertically
-                    leftWidth,
-                    renderHeight
-                );
-                
-                // Tile middle sprite across the available middle space scaled to render height
-                const numMiddleTiles = Math.ceil(middleSpaceWidth / middleWidth);
-                for (let i = 0; i < numMiddleTiles; i++) {
-                    const middleX = platform.x + leftWidth + (i * middleWidth);
-                    const remainingWidth = Math.min(middleWidth, middleSpaceWidth - (i * middleWidth));
-                    
-                    this.ctx.drawImage(
-                        middleSprite,
-                        0, 0, // Source position
-                        remainingWidth, middleSprite.height, // Source size (crop width if needed, full height)
-                        middleX, platform.y - (renderHeight - platform.height) / 2, // Center vertically
-                        remainingWidth, renderHeight // Destination size (scale height to render height)
-                    );
-                }
-                
-                // Draw right sprite scaled to render height
-                this.ctx.drawImage(
-                    rightSprite,
-                    platform.x + platform.width - rightWidth,
-                    platform.y - (renderHeight - platform.height) / 2, // Center vertically
-                    rightWidth,
-                    renderHeight
-                );
-            } else {
-                // Platform too small for all three sprites, draw left and right only with scaling
-                const combinedWidth = leftWidth + rightWidth;
-                if (platform.width >= combinedWidth) {
-                    // Draw left sprite scaled to render height
-                    this.ctx.drawImage(
-                        leftSprite,
-                        platform.x,
-                        platform.y - (renderHeight - platform.height) / 2,
-                        leftWidth,
-                        renderHeight
-                    );
-                    
-                    // Draw right sprite scaled to render height
-                    this.ctx.drawImage(
-                        rightSprite,
-                        platform.x + platform.width - rightWidth,
-                        platform.y - (renderHeight - platform.height) / 2,
-                        rightWidth,
-                        renderHeight
-                    );
-                } else {
-                    // Scale left and right sprites to fit the platform dimensions
-                    const scale = platform.width / combinedWidth;
-                    const scaledLeftWidth = leftWidth * scale;
-                    const scaledRightWidth = rightWidth * scale;
-                    
-                    // Draw scaled left sprite
-                    this.ctx.drawImage(
-                        leftSprite,
-                        platform.x,
-                        platform.y - (renderHeight - platform.height) / 2,
-                        scaledLeftWidth,
-                        renderHeight
-                    );
-                    
-                    // Draw scaled right sprite
-                    this.ctx.drawImage(
-                        rightSprite,
-                        platform.x + platform.width - scaledRightWidth,
-                        platform.y - (renderHeight - platform.height) / 2,
-                        scaledRightWidth,
-                        renderHeight
-                    );
-                }
-            }
+            this.drawThreeSpritePlatform(
+                platform,
+                this.rockPlatformLeftImage,
+                this.rockPlatformMiddleImage,
+                this.rockPlatformRightImage,
+                renderHeight,
+                platform.y - (renderHeight - platform.height) / 2 // Center vertically
+            );
         } else {
             // Fallback to solid colors for other platform types or if textures not loaded
             let color;
@@ -751,6 +585,95 @@ class Game {
             this.ctx.strokeStyle = '#000';
             this.ctx.lineWidth = 1;
             this.ctx.strokeRect(platform.x, platform.y, platform.width, platform.height);
+        }
+    }
+    
+    drawThreeSpritePlatform(platform, leftSprite, middleSprite, rightSprite, renderHeight, renderY = platform.y) {
+        const leftWidth = leftSprite.width;
+        const rightWidth = rightSprite.width;
+        const middleWidth = middleSprite.width;
+        
+        // Calculate how much space is available for the middle section
+        const middleSpaceWidth = platform.width - leftWidth - rightWidth;
+        
+        if (middleSpaceWidth > 0) {
+            // Draw left sprite
+            this.ctx.drawImage(
+                leftSprite,
+                platform.x,
+                renderY,
+                leftWidth,
+                renderHeight
+            );
+            
+            // Tile middle sprite across the available middle space
+            const numMiddleTiles = Math.ceil(middleSpaceWidth / middleWidth);
+            for (let i = 0; i < numMiddleTiles; i++) {
+                const middleX = platform.x + leftWidth + (i * middleWidth);
+                const remainingWidth = Math.min(middleWidth, middleSpaceWidth - (i * middleWidth));
+                
+                this.ctx.drawImage(
+                    middleSprite,
+                    0, 0, // Source position
+                    remainingWidth, middleSprite.height, // Source size (crop width if needed)
+                    middleX, renderY, // Destination position
+                    remainingWidth, renderHeight // Destination size
+                );
+            }
+            
+            // Draw right sprite
+            this.ctx.drawImage(
+                rightSprite,
+                platform.x + platform.width - rightWidth,
+                renderY,
+                rightWidth,
+                renderHeight
+            );
+        } else {
+            // Platform too small for all three sprites, draw left and right only with scaling
+            const combinedWidth = leftWidth + rightWidth;
+            if (platform.width >= combinedWidth) {
+                // Draw left sprite
+                this.ctx.drawImage(
+                    leftSprite,
+                    platform.x,
+                    renderY,
+                    leftWidth,
+                    renderHeight
+                );
+                
+                // Draw right sprite
+                this.ctx.drawImage(
+                    rightSprite,
+                    platform.x + platform.width - rightWidth,
+                    renderY,
+                    rightWidth,
+                    renderHeight
+                );
+            } else {
+                // Scale left and right sprites to fit the platform
+                const scale = platform.width / combinedWidth;
+                const scaledLeftWidth = leftWidth * scale;
+                const scaledRightWidth = rightWidth * scale;
+                
+                // Draw scaled left sprite
+                this.ctx.drawImage(
+                    leftSprite,
+                    platform.x,
+                    renderY,
+                    scaledLeftWidth,
+                    renderHeight
+                );
+                
+                // Draw scaled right sprite
+                this.ctx.drawImage(
+                    rightSprite,
+                    platform.x + platform.width - scaledRightWidth,
+                    renderY,
+                    scaledRightWidth,
+                    renderHeight
+                );
+            }
         }
     }
     
