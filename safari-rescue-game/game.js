@@ -103,6 +103,28 @@ class Game {
             this.logPlatformRightImageLoaded = true;
         };
         
+        // Load rock platform sprites
+        this.rockPlatformLeftImage = new Image();
+        this.rockPlatformLeftImage.src = 'images/environment/platform_rock_left.png';
+        this.rockPlatformLeftImageLoaded = false;
+        this.rockPlatformLeftImage.onload = () => {
+            this.rockPlatformLeftImageLoaded = true;
+        };
+        
+        this.rockPlatformMiddleImage = new Image();
+        this.rockPlatformMiddleImage.src = 'images/environment/platform_rock_middle.png';
+        this.rockPlatformMiddleImageLoaded = false;
+        this.rockPlatformMiddleImage.onload = () => {
+            this.rockPlatformMiddleImageLoaded = true;
+        };
+        
+        this.rockPlatformRightImage = new Image();
+        this.rockPlatformRightImage.src = 'images/environment/platform_rock_right.png';
+        this.rockPlatformRightImageLoaded = false;
+        this.rockPlatformRightImage.onload = () => {
+            this.rockPlatformRightImageLoaded = true;
+        };
+        
         this.init();
         this.setupLevel();
         
@@ -590,6 +612,100 @@ class Game {
                         platform.y,
                         scaledRightWidth,
                         rightSprite.height
+                    );
+                }
+            }
+        } else if (platform.type === 'rock' && this.rockPlatformLeftImageLoaded && 
+                   this.rockPlatformMiddleImageLoaded && this.rockPlatformRightImageLoaded) {
+            // Draw rock platform with left-middle-right sprite composition, scaled to platform height
+            const leftSprite = this.rockPlatformLeftImage;
+            const middleSprite = this.rockPlatformMiddleImage;
+            const rightSprite = this.rockPlatformRightImage;
+            
+            const leftWidth = leftSprite.width;
+            const rightWidth = rightSprite.width;
+            const middleWidth = middleSprite.width;
+            
+            // Calculate how much space is available for the middle section
+            const middleSpaceWidth = platform.width - leftWidth - rightWidth;
+            const renderHeight = platform.height * 1.5; // Scale up slightly for visibility
+            
+            if (middleSpaceWidth > 0) {
+                // Draw left sprite scaled to render height
+                this.ctx.drawImage(
+                    leftSprite,
+                    platform.x,
+                    platform.y - (renderHeight - platform.height) / 2, // Center vertically
+                    leftWidth,
+                    renderHeight
+                );
+                
+                // Tile middle sprite across the available middle space scaled to render height
+                const numMiddleTiles = Math.ceil(middleSpaceWidth / middleWidth);
+                for (let i = 0; i < numMiddleTiles; i++) {
+                    const middleX = platform.x + leftWidth + (i * middleWidth);
+                    const remainingWidth = Math.min(middleWidth, middleSpaceWidth - (i * middleWidth));
+                    
+                    this.ctx.drawImage(
+                        middleSprite,
+                        0, 0, // Source position
+                        remainingWidth, middleSprite.height, // Source size (crop width if needed, full height)
+                        middleX, platform.y - (renderHeight - platform.height) / 2, // Center vertically
+                        remainingWidth, renderHeight // Destination size (scale height to render height)
+                    );
+                }
+                
+                // Draw right sprite scaled to render height
+                this.ctx.drawImage(
+                    rightSprite,
+                    platform.x + platform.width - rightWidth,
+                    platform.y - (renderHeight - platform.height) / 2, // Center vertically
+                    rightWidth,
+                    renderHeight
+                );
+            } else {
+                // Platform too small for all three sprites, draw left and right only with scaling
+                const combinedWidth = leftWidth + rightWidth;
+                if (platform.width >= combinedWidth) {
+                    // Draw left sprite scaled to render height
+                    this.ctx.drawImage(
+                        leftSprite,
+                        platform.x,
+                        platform.y - (renderHeight - platform.height) / 2,
+                        leftWidth,
+                        renderHeight
+                    );
+                    
+                    // Draw right sprite scaled to render height
+                    this.ctx.drawImage(
+                        rightSprite,
+                        platform.x + platform.width - rightWidth,
+                        platform.y - (renderHeight - platform.height) / 2,
+                        rightWidth,
+                        renderHeight
+                    );
+                } else {
+                    // Scale left and right sprites to fit the platform dimensions
+                    const scale = platform.width / combinedWidth;
+                    const scaledLeftWidth = leftWidth * scale;
+                    const scaledRightWidth = rightWidth * scale;
+                    
+                    // Draw scaled left sprite
+                    this.ctx.drawImage(
+                        leftSprite,
+                        platform.x,
+                        platform.y - (renderHeight - platform.height) / 2,
+                        scaledLeftWidth,
+                        renderHeight
+                    );
+                    
+                    // Draw scaled right sprite
+                    this.ctx.drawImage(
+                        rightSprite,
+                        platform.x + platform.width - scaledRightWidth,
+                        platform.y - (renderHeight - platform.height) / 2,
+                        scaledRightWidth,
+                        renderHeight
                     );
                 }
             }
