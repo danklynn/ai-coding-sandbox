@@ -513,6 +513,7 @@ class Game {
             // Calculate how much space is available for the middle section
             const middleSpaceWidth = platform.width - leftWidth - rightWidth;
             
+            
             if (middleSpaceWidth > 0) {
                 // Draw left sprite at natural size
                 this.ctx.drawImage(
@@ -547,7 +548,7 @@ class Game {
                     rightSprite.height
                 );
             } else {
-                // Platform too small for all three sprites, draw left and right only
+                // Platform too small for all three sprites, draw left and right only with scaling
                 const combinedWidth = leftWidth + rightWidth;
                 if (platform.width >= combinedWidth) {
                     // Draw left sprite
@@ -568,20 +569,28 @@ class Game {
                         rightSprite.height
                     );
                 } else {
-                    // Platform extremely small, just tile middle sprite
-                    const numTiles = Math.ceil(platform.width / middleWidth);
-                    for (let i = 0; i < numTiles; i++) {
-                        const tileX = platform.x + (i * middleWidth);
-                        const remainingWidth = Math.min(middleWidth, platform.width - (i * middleWidth));
-                        
-                        this.ctx.drawImage(
-                            middleSprite,
-                            0, 0,
-                            remainingWidth, middleSprite.height,
-                            tileX, platform.y,
-                            remainingWidth, middleSprite.height
-                        );
-                    }
+                    // Scale left and right sprites to fit the platform
+                    const scale = platform.width / combinedWidth;
+                    const scaledLeftWidth = leftWidth * scale;
+                    const scaledRightWidth = rightWidth * scale;
+                    
+                    // Draw scaled left sprite
+                    this.ctx.drawImage(
+                        leftSprite,
+                        platform.x,
+                        platform.y,
+                        scaledLeftWidth,
+                        leftSprite.height
+                    );
+                    
+                    // Draw scaled right sprite
+                    this.ctx.drawImage(
+                        rightSprite,
+                        platform.x + platform.width - scaledRightWidth,
+                        platform.y,
+                        scaledRightWidth,
+                        rightSprite.height
+                    );
                 }
             }
         } else {
