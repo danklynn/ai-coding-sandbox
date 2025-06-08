@@ -17,26 +17,67 @@ Players control a brave zookeeper/safari guide on a mission to rescue endangered
 - **Appearance:** Khaki safari outfit, wide-brimmed hat, binoculars around neck
 - **Role:** Experienced wildlife conservationist and zookeeper
 
+### Character Sprites (Implemented)
+- **Standing Sprite:** `player_standing_left.png` - Default standing pose facing left
+- **Running Animation:** `player_running_left_A.png` - First frame of running animation
+- **Directional System:** Sprites automatically flip horizontally when facing right
+- **Animation Logic:** Switches between standing and running sprites based on movement
+- **Size:** 64x64 pixels scaled from pixel art
+
 ### Character Abilities
-- **Movement:** Left/right movement with smooth acceleration/deceleration
-- **Jumping:** Variable height jump (hold for higher jump, tap for smaller hop)
-- **Attack:** Primary attack is jumping on enemies (Mario-style stomp)
-- **Special:** Brief invincibility frames after taking damage
-- **Health:** 3 health points (represented by heart icons)
+- **Movement:** Realistic physics with acceleration (0.4), friction (0.8), max speed (5)
+- **Jumping:** Variable height jump with momentum conservation
+- **Attack:** Mario-style stomp on enemies with bounce effect
+- **Lives System:** 3 lives total, respawn on death
+- **Health:** 3 health points per life (represented by heart icons)
+- **Invincibility:** 2-second invincibility after taking damage
 
 ## Level 1 Specification: "Savanna Sunset"
 
-### Environment Design
+### Environment Design (Implemented)
 - **Setting:** African savanna at golden hour
-- **Background:** Layered parallax scrolling with acacia trees, distant mountains, and gradient sunset sky
-- **Foreground:** Grass platforms, rocky outcrops, fallen logs, and small watering holes
-- **Length:** Approximately 2-3 minutes of gameplay (1500-2000 pixels wide)
+- **Background:** `savannah_background2.png` - Parallax scrolling with acacia trees and sunset
+- **Level Width:** 2200 pixels with camera following player
+- **Canvas:** Full-screen responsive design (100vw x 100vh)
+- **Baby Elephant Cage:** Positioned behind boss as rescue objective
 
-### Platform Layout
-- **Starting Area:** Safe tutorial zone with simple jumps and first enemy
-- **Mid-Section:** Varied platform heights requiring different jump combinations
-- **Challenge Section:** Moving platforms over a ravine
-- **Boss Area:** Larger open space for boss encounter
+### Platform Layout (Implemented)
+- **Starting Area:** Tutorial platforms with safe jumps (x: 0-350)
+- **Mid-Section:** Varied height platforms requiring skill (x: 350-1400)
+- **Challenge Section:** Moving platforms over ravine with oscillating movement
+- **Boss Area:** Extended platform (400px wide) with smaller jumping platforms
+
+### Platform Types and Textures (For AI Image Generation)
+
+#### Grass Platforms
+- **Color Base:** Vibrant spring green (#90EE90)
+- **Texture Description:** "Dense African savanna grass platform texture, 32x32 pixels, pixel art style. Show individual grass blades with darker green shadows beneath, lighter yellow-green highlights on top. Include small wildflowers (tiny white and yellow dots) scattered sparsely. Add subtle brown soil visible at the platform edges. Clean pixel art with distinct color blocks, no anti-aliasing."
+- **Size Range:** 80-300 pixels wide, 15-50 pixels tall
+- **Usage:** Main pathway platforms, safe landing areas
+
+#### Rock Platforms  
+- **Color Base:** Medium gray (#A0A0A0)
+- **Texture Description:** "African granite rock platform texture, 32x32 pixels, pixel art style. Show weathered stone surface with darker gray cracks and crevices. Include lighter gray highlights on raised areas and darker shadows in recessed spots. Add hints of orange-brown mineral veining typical of African rock formations. Surface should look naturally rough with small chips and wear patterns. Maintain clean pixel art aesthetic with solid color blocks."
+- **Size Range:** 60-150 pixels wide, 15-30 pixels tall  
+- **Usage:** Mid-level challenges, decorative elements
+
+#### Log Platforms
+- **Color Base:** Saddle brown (#8B4513)
+- **Texture Description:** "Fallen African tree log platform texture, 32x32 pixels, pixel art style. Show horizontal wood grain with distinct growth rings visible on the end. Include darker brown bark texture on the sides with vertical ridges and some missing bark patches revealing lighter wood underneath. Add moss patches (dark green spots) in shadowed areas. Should look like a naturally weathered acacia or baobab log. Keep pixel art styling with clear color boundaries."
+- **Size Range:** 100-150 pixels wide, 20-30 pixels tall
+- **Usage:** Natural bridges, rustic platforms
+
+#### Moving Platforms
+- **Color Base:** Gold (#FFD700) 
+- **Texture Description:** "Magical floating platform texture, 32x32 pixels, pixel art style. Golden metallic base with ancient carved patterns or wildlife motifs (elephant silhouettes, paw prints). Include darker gold shadows and brighter yellow highlights to show dimensionality. Add subtle magical glow effect around edges (lighter yellow border). Surface should appear mystical but still natural, like an ancient African artifact. Maintain pixel art clarity with distinct color blocks."
+- **Size Range:** 80 pixels wide, 15 pixels tall
+- **Usage:** Moving challenge platforms over ravines
+
+#### Boss Platform
+- **Color Base:** Sandy brown (#CD853F)
+- **Texture Description:** "Large ceremonial platform texture, 32x32 pixels tileable, pixel art style. Packed earth base with intricate tribal patterns carved or painted in darker browns and burnt orange. Include scattered bone fragments and small animal tracks pressed into the surface. Add areas of disturbed soil where the boss walks. Should convey an ominous gathering place for poaching activities. Include subtle geometric African patterns around the edges. Keep pixel art style with solid color regions."
+- **Size Range:** 400 pixels wide, 50 pixels tall
+- **Usage:** Final boss battle arena
 
 ### Collectibles: Animal Feed
 
@@ -55,41 +96,45 @@ Players control a brave zookeeper/safari guide on a mission to rescue endangered
 - Special golden fruit (rare): 50 points each
 - Target: 30-40 total collectibles in Level 1
 
-### Enemy Types
+### Enemy Types (Implemented)
 
 #### Poacher Minions
 **Basic Poacher**
-- **Appearance:** Simple sprite in camouflage clothing
-- **Behavior:** Walks back and forth on platforms, turns at edges
-- **Defeat Method:** Jump on head (disappears with puff animation)
+- **Appearance:** Realistic 48x48 pixel sprite in camouflage clothing with knife
+- **Behavior:** Walks back and forth on platforms, edge detection prevents falling
+- **AI:** Patrols 80 pixels from spawn point, reverses at platform edges
+- **Defeat Method:** Jump on top 30% of enemy sprite (forgiving collision)
 - **Reward:** 100 points + fruit drop (50% chance)
 
-**Patrol Poacher**
-- **Appearance:** Slightly larger, carries a net
-- **Behavior:** Patrols longer distances, moves faster
-- **Defeat Method:** Jump on head twice
+**Patrol Poacher**  
+- **Appearance:** Larger camouflage sprite with net and equipment belt
+- **Behavior:** Faster movement (2 vs 1 speed), longer patrol range (150 pixels)
+- **AI:** Advanced platform edge detection, more aggressive movement
+- **Defeat Method:** Single stomp (simplified from original 2-hit design)
 - **Reward:** 200 points + guaranteed fruit drop
 
-### Boss: Chief Poacher
+### Boss: Chief Poacher (Implemented)
 
 #### Boss Design
-- **Appearance:** Large sprite with safari vest, hat, and intimidating stance
-- **Location:** In front of a large cage containing a baby elephant
-- **Arena:** Flat ground with 2-3 small platforms for maneuvering
+- **Appearance:** Large 96x96 pixel sprite with detailed safari vest, wide hat, scar, and whip
+- **Location:** Boss platform with baby elephant cage (`baby_elephant.png`) positioned behind
+- **Arena:** Extended 400px platform with small jumping platforms for maneuvering
+- **Health Bar:** Visual health display above boss (green bar that decreases)
 
-#### Boss Mechanics
-- **Phase 1:** Throws nets in predictable arc patterns (jump to avoid)
-- **Phase 2:** (after 3 hits) Charges across screen (jump over or hide behind platforms)
-- **Health:** 6 hits total
-- **Attack Pattern:** 3 seconds between attacks, clearly telegraphed
-- **Defeat Condition:** Jump on boss's head 6 times
+#### Boss Mechanics (Implemented)
+- **Phase 1:** Net throwing phase (3 seconds cooldown, visual telegraph)
+- **Phase 2:** Charging phase after 3 hits (speeds up to 120 frame cooldown)
+- **Health:** 6 hits total with visual feedback
+- **Charging:** Moves 100 pixels left/right from original position at speed 8
+- **Attack Pattern:** 180 frame (3 second) cooldown between attacks
+- **Defeat Condition:** Jump on boss's head 6 times (top 30% collision area)
 
-#### Victory Sequence
-1. Boss disappears with defeat animation
-2. Cage opens automatically
-3. Baby elephant trumpets happily and runs off-screen
-4. Victory message: "Baby Elephant Rescued!"
-5. Level completion stats display
+#### Victory Sequence (Implemented)
+1. Boss defeated state, stops all attacks
+2. Game state changes to 'victory'
+3. Victory overlay with "Baby Elephant Rescued! 🐘" message
+4. Final score display
+5. No browser alerts (clean victory screen)
 
 ## Core Gameplay Mechanics
 
@@ -98,30 +143,38 @@ Players control a brave zookeeper/safari guide on a mission to rescue endangered
 - **W or Spacebar:** Jump
 - **S or Down Arrow:** Duck/crouch (for future use)
 
-### Physics System
-- **Gravity:** Consistent downward force
-- **Jump Physics:** Responsive with variable height based on button hold duration
-- **Collision:** Precise pixel-perfect collision detection
-- **Terminal Velocity:** Cap falling speed to maintain control
+### Physics System (Implemented)
+- **Gravity:** 0.5 downward acceleration per frame
+- **Terminal Velocity:** Capped at 15 pixels/frame for falling
+- **Jump Physics:** Variable height (-8 initial velocity, -0.2 additional while held)
+- **Platform Collision:** Mario-style one-way platforms (can jump through from below)
+- **Moving Platforms:** Player moves with platforms when standing on them
+- **Boundary Detection:** Left boundary at x=0, right boundary at level width (2200px)
+- **Death Boundary:** Fall death trigger at y=700
 
-### Combat System
-- **Stomp Attack:** Landing on enemy's head defeats them
-- **Timing Window:** Brief invincibility after stomping (0.5 seconds)
-- **Miss Penalty:** Landing beside enemies causes damage to player
-- **Feedback:** Screen shake and sound effect on successful hits
+### Combat System (Implemented)
+- **Stomp Attack:** Top 30% of enemy sprite triggers defeat (forgiving collision)
+- **Bounce Effect:** -8 velocity bounce after successful stomp
+- **Damage System:** Requires 10+ pixel overlap for damage (prevents edge cases)
+- **Invincibility:** 120 frames (2 seconds) after taking damage with visual flash
+- **Lives System:** 3 lives total, respawn at (100, 400) after death
+- **Game Over:** Triggered when all lives are lost
 
 ## User Interface
 
-### HUD Elements
-- **Health:** 3 heart icons in top-left corner
-- **Score:** Running point total in top-center
-- **Fruit Counter:** Shows collected vs total available
-- **Level Name:** "Savanna Sunset" displayed briefly at start
+### HUD Elements (Implemented)
+- **Health:** 3 heart icons (♥) in top-left, opacity changes with health
+- **Score:** Running point total in top-right
+- **Lives Counter:** Shows remaining lives in HUD
+- **Fruit Counter:** Banana emoji with collected/total format (🍌 0/30)
+- **Level Name:** "Savanna Sunset" with 3-second fade animation
+- **Overlay Design:** HUD positioned absolutely over full-screen canvas
 
-### Visual Feedback
-- **Damage:** Hearts flash red and decrease
-- **Collection:** Fruit counter increases with small animation
-- **Score:** Points float upward when earned
+### Visual Feedback (Implemented)
+- **Damage:** Hearts fade to 30% opacity when lost, player flashes during invincibility
+- **Collection:** Particle effects (5 golden particles) spawn on fruit collection
+- **Victory/Game Over:** Full-screen overlays with appropriate messaging
+- **Enemy Defeat:** 8 red particles spawn when enemies are defeated
 
 ## Technical Requirements
 
@@ -131,38 +184,52 @@ Players control a brave zookeeper/safari guide on a mission to rescue endangered
 - **Responsive Design:** Scales appropriately for different screen sizes
 - **Mobile Compatibility:** Touch controls for mobile devices
 
-### Asset Requirements
-- **Character Sprites:** 32x32 pixels, 4-6 animation frames per action
-- **Enemy Sprites:** 24x24 pixels for minions, 48x48 for boss
-- **Environment Tiles:** 32x32 pixel modular tiles
-- **Background:** 1920x1080 layered background art
-- **Sound Effects:** 8-bit style audio for jumps, collections, defeats
-- **Music:** Upbeat African-inspired background track (2-3 minute loop)
+### Asset Requirements (Implemented/Updated)
+- **Character Sprites:** 64x64 pixels (2x scale), standing and running animations
+- **Player Images:** `player_standing_left.png`, `player_running_left_A.png` with directional flipping
+- **Enemy Sprites:** 48x48 pixels for minions, 96x96 for boss with realistic detail
+- **Background:** `savannah_background2.png` with parallax scrolling support
+- **Special Images:** `baby_elephant.png` cage sprite for mission objective
+- **Platform Textures:** Needed - 32x32 pixel modular tiles for each platform type
+- **Sound Effects:** Not yet implemented - 8-bit style audio planned
+- **Music:** Not yet implemented - African-inspired background track planned
+
+### Current Asset Status
+- ✅ **Player sprites:** Standing and running (left-facing with flip system)
+- ✅ **Background:** Savannah sunset with parallax scrolling
+- ✅ **Baby elephant:** Rescue objective visual
+- ❌ **Platform textures:** Currently using solid colors, need pixel art textures
+- ❌ **Sound effects:** Not implemented
+- ❌ **Background music:** Not implemented
+- ❌ **Running animation B frame:** Need second running frame for animation
 
 ## Success Criteria for Level 1
 
-### Gameplay Polish
-- Smooth, responsive character movement
-- Satisfying jump mechanics with good "game feel"
-- Clear visual and audio feedback for all actions
-- Balanced difficulty curve from start to boss
+### Gameplay Polish (Status: ✅ ACHIEVED)
+- ✅ Smooth, responsive character movement with realistic physics
+- ✅ Satisfying jump mechanics with variable height and momentum
+- ✅ Visual feedback through particle effects and UI updates
+- ✅ Balanced difficulty curve from tutorial area to boss encounter
+- ❌ Audio feedback still needed
 
-### Visual Quality
-- Cohesive art style that's colorful and engaging
-- Smooth animations for character and enemies
-- Appealing parallax background that enhances immersion
-- Clear visual hierarchy so gameplay elements stand out
+### Visual Quality (Status: 🔄 IN PROGRESS)
+- ✅ Cohesive pixel art style with safari theme
+- ✅ Character animations with standing/running states and directional facing
+- ✅ Appealing parallax background that enhances immersion
+- ✅ Clear visual hierarchy with HUD overlay system
+- ❌ Platform textures needed to replace solid colors
+- ❌ Additional running animation frame needed
 
-### Audio Design
-- Distinct sound effects for different actions
-- Background music that loops seamlessly
-- Audio cues that provide gameplay feedback
+### Audio Design (Status: ❌ NOT STARTED)
+- ❌ Sound effects for jumping, collecting, enemy defeats
+- ❌ Background music with African safari theme
+- ❌ Audio cues for damage, victory, and other game events
 
-### Player Experience
-- Intuitive controls that feel natural within 30 seconds
-- Progressive difficulty that teaches mechanics through play
-- Satisfying boss encounter that feels like an achievement
-- Clear conservation message without being preachy
+### Player Experience (Status: ✅ ACHIEVED)
+- ✅ Intuitive controls with WASD/Arrow keys
+- ✅ Progressive difficulty teaching mechanics through level design
+- ✅ Satisfying boss encounter with clear rescue objective
+- ✅ Conservation message through baby elephant rescue theme
 
 ## Future Level Considerations
 
@@ -176,24 +243,34 @@ Once Level 1 meets all success criteria, future levels can introduce:
 
 ## Development Phases
 
-### Phase 1: Core Mechanics (Week 1-2)
-- Basic character movement and jumping
-- Simple collision detection
-- Basic enemy AI and defeat mechanics
+### Phase 1: Core Mechanics (✅ COMPLETED)
+- ✅ Realistic character movement with physics (acceleration, friction, momentum)
+- ✅ Mario-style one-way platform collision detection
+- ✅ Enemy AI with platform edge detection and patrol behaviors
+- ✅ Lives system with respawn mechanics
 
-### Phase 2: Level Construction (Week 3)
-- Design and implement Level 1 layout
-- Add collectibles and point system
-- Basic UI implementation
+### Phase 2: Level Construction (✅ COMPLETED)
+- ✅ Complete Level 1 layout with varied platform challenges
+- ✅ Collectible fruit system with scoring (30 total fruits)
+- ✅ Full UI implementation with health, score, lives, and fruit counters
+- ✅ Moving platforms with player tracking
 
-### Phase 3: Boss and Polish (Week 4)
-- Implement boss battle mechanics
-- Add sound effects and background music
-- Visual polish and animations
+### Phase 3: Boss and Polish (✅ COMPLETED)
+- ✅ Boss battle with two-phase mechanics and health system
+- ✅ Baby elephant rescue objective visual
+- ✅ Sprite-based character animations with directional facing
+- ❌ Sound effects and background music (pending)
 
-### Phase 4: Testing and Refinement (Week 5)
-- Playtesting with focus groups
-- Balance adjustments
-- Bug fixes and optimization
+### Phase 4: Visual Enhancement (🔄 CURRENT)
+- ✅ Player sprite system with standing/running animations
+- ❌ Platform texture generation (detailed specifications provided)
+- ❌ Second running animation frame (player_running_left_B.png)
+- ❌ Audio implementation
 
-This specification prioritizes creating a single, highly polished level that demonstrates all core mechanics and serves as a strong foundation for expanding the game with additional levels and features.
+### Phase 5: Final Polish (📋 PLANNED)
+- Testing and balance adjustments
+- Performance optimization
+- Mobile compatibility enhancements
+- Bug fixes and edge case handling
+
+This specification has evolved to reflect the current highly polished state of the game, with most core features implemented and focus shifting to visual and audio enhancements.
