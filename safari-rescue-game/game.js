@@ -57,6 +57,14 @@ class Game {
             this.playerRunningImageLoaded = true;
         };
         
+        // Load grass platform texture
+        this.grassPlatformImage = new Image();
+        this.grassPlatformImage.src = 'images/grass_platform_middle.png';
+        this.grassPlatformImageLoaded = false;
+        this.grassPlatformImage.onload = () => {
+            this.grassPlatformImageLoaded = true;
+        };
+        
         this.init();
         this.setupLevel();
         
@@ -422,23 +430,50 @@ class Game {
     }
     
     drawPlatform(platform) {
-        let color;
-        switch (platform.type) {
-            case 'grass': color = '#90EE90'; break;
-            case 'rock': color = '#A0A0A0'; break;
-            case 'log': color = '#8B4513'; break;
-            case 'moving': color = '#FFD700'; break;
-            case 'boss_platform': color = '#CD853F'; break;
-            default: color = '#90EE90';
+        if (platform.type === 'grass' && this.grassPlatformImageLoaded) {
+            // Draw grass platform with texture extending above collision area
+            const grassExtension = 35; // How much grass extends above the platform
+            const desiredHeight = platform.height + grassExtension; // Total desired height
+            const textureY = platform.y - grassExtension;
+            
+            // Tile the grass texture horizontally across the platform width
+            const tileWidth = this.grassPlatformImage.width;
+            const sourceHeight = this.grassPlatformImage.height;
+            const numTiles = Math.ceil(platform.width / tileWidth);
+            
+            for (let i = 0; i < numTiles; i++) {
+                const tileX = platform.x + (i * tileWidth);
+                const remainingWidth = Math.min(tileWidth, platform.width - (i * tileWidth));
+
+                // Draw the grass texture, scaling height to fit platform + extension
+                this.ctx.drawImage(
+                    this.grassPlatformImage,
+                    0, 0, // Source position
+                    remainingWidth, sourceHeight, // Source size (crop width if needed, full height)
+                    tileX, textureY, // Destination position
+                    remainingWidth, desiredHeight // Destination size (scale height to fit)
+                );
+            }
+        } else {
+            // Fallback to solid colors for other platform types or if grass texture not loaded
+            let color;
+            switch (platform.type) {
+                case 'grass': color = '#90EE90'; break;
+                case 'rock': color = '#A0A0A0'; break;
+                case 'log': color = '#8B4513'; break;
+                case 'moving': color = '#FFD700'; break;
+                case 'boss_platform': color = '#CD853F'; break;
+                default: color = '#90EE90';
+            }
+            
+            this.ctx.fillStyle = color;
+            this.ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+            
+            // Add texture border
+            this.ctx.strokeStyle = '#000';
+            this.ctx.lineWidth = 1;
+            this.ctx.strokeRect(platform.x, platform.y, platform.width, platform.height);
         }
-        
-        this.ctx.fillStyle = color;
-        this.ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
-        
-        // Add texture
-        this.ctx.strokeStyle = '#000';
-        this.ctx.lineWidth = 1;
-        this.ctx.strokeRect(platform.x, platform.y, platform.width, platform.height);
     }
     
     drawVictoryScreen() {
