@@ -1,6 +1,17 @@
 #!/usr/bin/env python3
 """
-Convert Claude Code conversation JSONL file to HTML format.
+Claude Conversation Renderer
+
+This script converts Claude Code conversation JSONL files into beautifully formatted HTML
+with features like collapsible content, syntax highlighting, table of contents, and more.
+
+Features:
+- Converts JSONL conversation files to HTML with sidebar navigation
+- Supports Claude API integration for enhanced summarization
+- Includes collapsible long content and code blocks
+- Generates table of contents from conversation milestones
+- Caches API results to avoid redundant requests
+- Responsive design for mobile and desktop viewing
 """
 
 import json
@@ -14,7 +25,14 @@ import os
 import hashlib
 
 def parse_timestamp(timestamp_str):
-    """Parse ISO timestamp and return formatted string."""
+    """Parse ISO timestamp and return formatted string.
+    
+    Args:
+        timestamp_str (str): ISO format timestamp string
+        
+    Returns:
+        str: Formatted timestamp in 'YYYY-MM-DD HH:MM:SS' format
+    """
     try:
         dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
         return dt.strftime('%Y-%m-%d %H:%M:%S')
@@ -22,12 +40,29 @@ def parse_timestamp(timestamp_str):
         return timestamp_str
 
 def clean_ansi_codes(text):
-    """Remove ANSI color codes from text."""
+    """Remove ANSI color codes from text.
+    
+    Args:
+        text (str): Text containing ANSI escape sequences
+        
+    Returns:
+        str: Clean text with ANSI codes removed
+    """
     ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
     return ansi_escape.sub('', text)
 
 def format_tool_details(tool_data):
-    """Format detailed tool usage information."""
+    """Format detailed tool usage information for HTML display.
+    
+    Creates collapsible tool usage sections with appropriate styling and icons
+    based on the tool type (Read, Bash, etc.).
+    
+    Args:
+        tool_data (dict): Tool data containing name and input parameters
+        
+    Returns:
+        str: HTML string representing the formatted tool details
+    """
     import uuid
     import os
     tool_name = tool_data.get('name', 'Unknown Tool')
@@ -77,7 +112,16 @@ def format_tool_details(tool_data):
     return ''.join(html_parts)
 
 def count_lines_in_content(content):
-    """Count the number of lines in content."""
+    """Count the number of lines in content.
+    
+    Handles both string content and structured content arrays.
+    
+    Args:
+        content (str or list): Content to count lines in
+        
+    Returns:
+        int: Number of lines in the content
+    """
     if isinstance(content, str):
         return len(content.split('\n'))
     elif isinstance(content, list):
@@ -89,7 +133,19 @@ def count_lines_in_content(content):
     return 0
 
 def make_collapsible_if_long(content, formatted_content, is_assistant=False):
-    """Make content collapsible if it's longer than 30 lines and from assistant."""
+    """Make content collapsible if it's longer than 30 lines and from assistant.
+    
+    Creates a preview section with expand/collapse functionality for long content
+    to improve readability and navigation.
+    
+    Args:
+        content (str or list): Original content for line counting
+        formatted_content (str): HTML-formatted content
+        is_assistant (bool): Whether this is assistant content
+        
+    Returns:
+        str: Either original content or collapsible HTML wrapper
+    """
     if not is_assistant:
         return formatted_content
     
@@ -129,7 +185,17 @@ def make_collapsible_if_long(content, formatted_content, is_assistant=False):
     '''
 
 def format_content(content):
-    """Format message content for HTML display."""
+    """Format message content for HTML display.
+    
+    Handles string content and structured content arrays. Processes code blocks,
+    escapes HTML, and converts newlines to break tags.
+    
+    Args:
+        content (str or list): Message content to format
+        
+    Returns:
+        str: HTML-formatted content
+    """
     if isinstance(content, str):
         # Clean ANSI codes and escape HTML
         clean_content = clean_ansi_codes(content)
@@ -184,7 +250,16 @@ def format_content(content):
         return html.escape(str(content))
 
 def extract_message_content(message_data):
-    """Extract the main content from a message."""
+    """Extract the main content from a message.
+    
+    Handles different message data structures from the JSONL format.
+    
+    Args:
+        message_data (dict): Message data from JSONL
+        
+    Returns:
+        str or list: Message content
+    """
     if 'message' in message_data and 'content' in message_data['message']:
         return message_data['message']['content']
     elif 'content' in message_data:
@@ -192,7 +267,14 @@ def extract_message_content(message_data):
     return ''
 
 def get_message_role(message_data):
-    """Determine the role/type of the message."""
+    """Determine the role/type of the message.
+    
+    Args:
+        message_data (dict): Message data from JSONL
+        
+    Returns:
+        str: Message role ('user', 'assistant', or 'system')
+    """
     if 'message' in message_data and 'role' in message_data['message']:
         return message_data['message']['role']
     elif message_data.get('type') == 'assistant':
@@ -202,11 +284,25 @@ def get_message_role(message_data):
     return 'system'
 
 def is_meta_message(message_data):
-    """Check if this is a meta/system message that should be styled differently."""
+    """Check if this is a meta/system message that should be styled differently.
+    
+    Args:
+        message_data (dict): Message data from JSONL
+        
+    Returns:
+        bool: True if this is a meta message
+    """
     return message_data.get('isMeta', False) or 'command-name' in str(message_data)
 
 def is_tool_result_message(message_data):
-    """Check if this is a tool result message."""
+    """Check if this is a tool result message.
+    
+    Args:
+        message_data (dict): Message data from JSONL
+        
+    Returns:
+        bool: True if this contains tool result content
+    """
     content = extract_message_content(message_data)
     if isinstance(content, list):
         for item in content:
@@ -215,7 +311,16 @@ def is_tool_result_message(message_data):
     return False
 
 def should_exclude_message(message_data):
-    """Check if this message should be excluded from the HTML output."""
+    """Check if this message should be excluded from the HTML output.
+    
+    Filters out meta messages, tool results, and empty user messages.
+    
+    Args:
+        message_data (dict): Message data from JSONL
+        
+    Returns:
+        bool: True if message should be excluded
+    """
     # Exclude meta messages
     if is_meta_message(message_data):
         return True
@@ -233,7 +338,16 @@ def should_exclude_message(message_data):
     return False
 
 def extract_text_from_content(content):
-    """Extract text content from various message formats."""
+    """Extract text content from various message formats.
+    
+    Handles both string content and structured content arrays.
+    
+    Args:
+        content (str or list): Content to extract text from
+        
+    Returns:
+        str: Plain text content
+    """
     if isinstance(content, str):
         return content
     elif isinstance(content, list):
@@ -256,7 +370,14 @@ def extract_text_from_content(content):
         return str(content)
 
 def extract_goal_from_text(text_content):
-    """Extract the core goal or action from user text."""
+    """Extract the core goal or action from user text using regex patterns.
+    
+    Args:
+        text_content (str): User message text
+        
+    Returns:
+        str or None: Extracted goal/action, or None if no pattern matches
+    """
     # Common action patterns
     action_patterns = [
         (r'(build|create|make) (.+?)(?:\.|$|,|\n)', r'\1 \2'),
@@ -282,7 +403,14 @@ def extract_goal_from_text(text_content):
     return None
 
 def get_file_hash(file_path):
-    """Generate MD5 hash of file contents for cache key."""
+    """Generate MD5 hash of file contents for cache key.
+    
+    Args:
+        file_path (str): Path to file
+        
+    Returns:
+        str: MD5 hash of file contents
+    """
     hash_md5 = hashlib.md5()
     with open(file_path, "rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):
@@ -290,14 +418,30 @@ def get_file_hash(file_path):
     return hash_md5.hexdigest()
 
 def get_cache_file_path(input_file):
-    """Generate cache file path based on input file hash."""
+    """Generate cache file path based on input file hash.
+    
+    Creates a cache directory if it doesn't exist.
+    
+    Args:
+        input_file (str): Path to input JSONL file
+        
+    Returns:
+        Path: Path to cache file
+    """
     file_hash = get_file_hash(input_file)
     cache_dir = Path(input_file).parent / ".conversation_cache"
     cache_dir.mkdir(exist_ok=True)
     return cache_dir / f"summaries_{file_hash}.json"
 
 def load_summary_cache(input_file):
-    """Load cached summaries if they exist."""
+    """Load cached summaries if they exist.
+    
+    Args:
+        input_file (str): Path to input JSONL file
+        
+    Returns:
+        dict: Cached summaries or empty dict if cache doesn't exist
+    """
     cache_file = get_cache_file_path(input_file)
     if cache_file.exists():
         try:
@@ -308,7 +452,12 @@ def load_summary_cache(input_file):
     return {}
 
 def save_summary_cache(input_file, cache):
-    """Save summaries to cache file."""
+    """Save summaries to cache file.
+    
+    Args:
+        input_file (str): Path to input JSONL file
+        cache (dict): Summary cache to save
+    """
     cache_file = get_cache_file_path(input_file)
     try:
         with open(cache_file, 'w', encoding='utf-8') as f:
@@ -317,7 +466,20 @@ def save_summary_cache(input_file, cache):
         print(f"Warning: Failed to save cache: {e}")
 
 def summarize_with_claude(text_content, api_key, cache_key=None, cache=None):
-    """Use Claude API to generate a concise summary with caching."""
+    """Use Claude API to generate a concise summary with caching.
+    
+    Makes API calls to Claude to generate better summaries than regex patterns.
+    Includes caching to avoid redundant API calls.
+    
+    Args:
+        text_content (str): Text to summarize
+        api_key (str): Anthropic API key
+        cache_key (str, optional): Cache key for this content
+        cache (dict, optional): Cache dictionary
+        
+    Returns:
+        str or None: Generated summary or None if API fails
+    """
     # Check cache first
     if cache_key and cache and cache_key in cache:
         return cache[cache_key]
@@ -380,7 +542,21 @@ Summary:"""
     return None
 
 def extract_meaningful_summary(content, role, api_key=None, cache_key=None, cache=None):
-    """Extract a meaningful summary from message content."""
+    """Extract a meaningful summary from message content.
+    
+    Uses Claude API for better summarization if available, falls back to
+    regex pattern matching.
+    
+    Args:
+        content (str or list): Message content
+        role (str): Message role ('user' or 'assistant')
+        api_key (str, optional): Anthropic API key
+        cache_key (str, optional): Cache key for this content
+        cache (dict, optional): Cache dictionary
+        
+    Returns:
+        str or None: Extracted summary or None if no meaningful content
+    """
     # First convert to text
     text_content = extract_text_from_content(content)
     
@@ -458,7 +634,19 @@ def extract_meaningful_summary(content, role, api_key=None, cache_key=None, cach
     return None
 
 def identify_milestones(messages, api_key=None, input_file=None):
-    """Identify key milestones in the conversation for table of contents."""
+    """Identify key milestones in the conversation for table of contents.
+    
+    Scans through messages to find significant user requests and completions
+    to build a navigable table of contents.
+    
+    Args:
+        messages (list): List of conversation messages
+        api_key (str, optional): Anthropic API key for enhanced summarization
+        input_file (str, optional): Input file path for caching
+        
+    Returns:
+        list: List of milestone dictionaries with titles and positions
+    """
     milestones = []
     last_milestone_index = -10  # Ensure some spacing between milestones
     
@@ -546,7 +734,19 @@ def identify_milestones(messages, api_key=None, input_file=None):
     return milestones
 
 def convert_jsonl_to_html(input_file, output_file=None, api_key=None):
-    """Convert JSONL conversation file to HTML."""
+    """Convert JSONL conversation file to HTML.
+    
+    Main conversion function that processes the JSONL file, identifies milestones,
+    and generates a complete HTML document with styling and navigation.
+    
+    Args:
+        input_file (str): Path to input JSONL file
+        output_file (str, optional): Path to output HTML file
+        api_key (str, optional): Anthropic API key for enhanced summarization
+        
+    Returns:
+        str: Path to generated HTML file
+    """
     
     if output_file is None:
         # Always use the same output filename based on input
@@ -1107,10 +1307,45 @@ def convert_jsonl_to_html(input_file, output_file=None, api_key=None):
     return output_file
 
 def main():
-    parser = argparse.ArgumentParser(description='Convert Claude Code JSONL conversation to HTML')
-    parser.add_argument('input_file', help='Input JSONL file path')
-    parser.add_argument('-o', '--output', help='Output HTML file path (optional)')
-    parser.add_argument('--api-key', help='Anthropic API key for enhanced summarization (optional)')
+    parser = argparse.ArgumentParser(
+        description='Claude Conversation Renderer - Convert Claude Code JSONL files to beautiful HTML',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+Examples:
+  %(prog)s conversation.jsonl
+  %(prog)s conversation.jsonl -o output.html
+  %(prog)s conversation.jsonl --api-key sk-ant-xxxxx
+
+Claude API Key:
+  For enhanced summarization and table of contents generation, provide your
+  Anthropic API key using one of these methods:
+  
+  1. Command line argument: --api-key sk-ant-xxxxx
+  2. Environment variable: export ANTHROPIC_API_KEY=sk-ant-xxxxx
+  
+  To get an API key:
+  1. Sign up at https://console.anthropic.com/
+  2. Go to Settings > API Keys
+  3. Create a new API key
+  4. Copy the key (starts with 'sk-ant-')
+  
+  Note: The API key is optional. Without it, the script will use basic
+  pattern matching for summarization instead of Claude's enhanced analysis.
+
+Features:
+  - Responsive HTML with sidebar navigation
+  - Collapsible long content and code blocks  
+  - Syntax highlighting for code
+  - Table of contents from conversation milestones
+  - Caching to avoid redundant API calls
+  - Clean, modern design optimized for readability
+        ''')
+    parser.add_argument('input_file', 
+                        help='Path to the Claude Code JSONL conversation file')
+    parser.add_argument('-o', '--output', 
+                        help='Output HTML file path (default: <input>_conversation.html)')
+    parser.add_argument('--api-key', 
+                        help='Anthropic API key for enhanced summarization (optional, can also use ANTHROPIC_API_KEY env var)')
     
     args = parser.parse_args()
     
